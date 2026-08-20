@@ -82,7 +82,7 @@ int iterativeDeepening(Board& board, int maxDepth, SearchInfo& info) {
 
     for (int depth = 1; depth <= maxDepth; depth++) {
         info.selDepth = 0;
-        int score = negamax(board, depth, 0, info);
+        int score = negamax(board, depth, 0, info, -1'000'000'000, 1'000'000'000);
 
         if (info.stop) {
             break;
@@ -133,7 +133,7 @@ void bench(Board& board) {
         .nodes = 0
     };
 
-    int score = iterativeDeepening(board, 5, info);
+    int score = iterativeDeepening(board, 7, info);
 
     std::uint64_t time = elapsedTime(info.start);
     std::uint64_t nps = calculateNps(info.nodes, time);        

@@ -27,7 +27,7 @@ bool timeUp(const SearchInfo& info) {
     return elapsedTime(info.start) >= info.timeLimit;
 }
 
-int negamax(Board& board, int depth, int ply, SearchInfo& info) {
+int negamax(Board& board, int depth, int ply, SearchInfo& info, int alpha, int beta) {
     pvLength[ply] = ply;
 
     Color stm = board.sideToMove;
@@ -81,7 +81,7 @@ int negamax(Board& board, int depth, int ply, SearchInfo& info) {
             std::cout << "info currmove " << moveToUci(move) << " currmovenumber " << moveNumber << "\n";
         }
 
-        int score = -negamax(board, depth - 1, ply + 1, info);
+        int score = -negamax(board, depth - 1, ply + 1, info, -beta, -alpha);
 
         board.unmakeMove(move);
 
@@ -99,6 +99,13 @@ int negamax(Board& board, int depth, int ply, SearchInfo& info) {
             }
 
             pvLength[ply] = pvLength[ply + 1];
+        }
+
+        if (score > alpha) {
+            alpha = score;
+        }
+        if (alpha >= beta) {
+            return bestScore;
         }
     }
 
