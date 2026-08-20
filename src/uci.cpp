@@ -6,6 +6,10 @@
 #include "board.hpp"
 #include "movegen.hpp"
 #include "search.hpp"
+#include "types.hpp"
+
+Move bestMove = {e2, e4};
+bool haveBestMove = false;
 
 #ifndef GIT_SHA
 #define GIT_SHA "nogit"
@@ -74,6 +78,7 @@ std::string moveToUci(const Move& move) {
 
 int iterativeDeepening(Board& board, int maxDepth, SearchInfo& info) {
     int bestScore = 0;
+    haveBestMove = false;
 
     for (int depth = 1; depth <= maxDepth; depth++) {
         info.selDepth = 0;
@@ -84,6 +89,8 @@ int iterativeDeepening(Board& board, int maxDepth, SearchInfo& info) {
         }
 
         bestScore = score;
+        bestMove = pvTable[0][0];
+        haveBestMove = true;
 
         std::uint64_t time = elapsedTime(info.start);
         std::uint64_t nps = calculateNps(info.nodes, time);
@@ -229,7 +236,7 @@ void uciLoop(Board& board) {
 
             int score = iterativeDeepening(board, depth, info);
 
-            std::cout << "bestmove " << moveToUci(pvTable[0][0]) << "\n";
+            std::cout << "bestmove " << moveToUci(bestMove) << "\n";
         } else if (cmd == "quit") {
             return;
         }
