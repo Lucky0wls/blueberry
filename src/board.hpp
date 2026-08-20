@@ -36,6 +36,8 @@ public:
 
     bool inCheck(Color color) const;
 
+    bool isCapture(const Move& move) const;
+
     Piece pieceAt(int sq) const;
 
     int castlingIndex() const;

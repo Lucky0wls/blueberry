@@ -190,6 +190,12 @@ void Board::setStartpos() {
     stateStack[0].zobristKey = computeZobrist();
 }
 
+bool Board::isCapture(const Move& move) const {
+    Bitboard them = this->colorPieces(this->sideToMove == WHITE ? BLACK : WHITE);
+
+    return isSet(them, move.to);
+}
+
 void Board::makeMove(const Move& move) {
     PieceInfo info = pieceInfoAt(move.from);
     if (info.exists == false) {

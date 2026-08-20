@@ -66,4 +66,14 @@ struct Move {
     Square from;
     Square to;
     MoveFlag flag = QUIET;
+
+    bool operator==(const Move& other) const {
+    return from == other.from
+        && to == other.to
+        && flag == other.flag;
+    }
+
+    bool operator!=(const Move& other) const {
+        return !(*this == other);
+    }
 };

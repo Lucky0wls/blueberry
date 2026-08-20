@@ -1,5 +1,6 @@
 #include <array>
 #include <iostream>
+#include <algorithm>
 
 #include "search.hpp"
 #include "board.hpp"
@@ -7,6 +8,7 @@
 #include "evaluate.hpp"
 #include "movegen.hpp"
 #include "uci.hpp"
+#include "movepicker.hpp"
 
 const int inf = 1'000'000'000;
 const int mateScore = 100'000;
@@ -14,6 +16,11 @@ const int drawScore = 0;
 
 std::array<std::array<Move, 256>, 256> pvTable{};
 std::array<int, 256> pvLength{};
+
+struct ScoredMove {
+    Move move;
+    int score;
+};
 
 static std::uint64_t elapsedTime(std::chrono::steady_clock::time_point start) {
     auto now = std::chrono::steady_clock::now();
@@ -27,7 +34,7 @@ bool timeUp(const SearchInfo& info) {
     return elapsedTime(info.start) >= info.timeLimit;
 }
 
-int negamax(Board& board, int depth, int ply, SearchInfo& info, int alpha, int beta) {
+int negamax(Board& board, int depth, int ply, SearchInfo& info, int alpha, int beta, Move hint) {
     pvLength[ply] = ply;
 
     Color stm = board.sideToMove;
@@ -62,10 +69,14 @@ int negamax(Board& board, int depth, int ply, SearchInfo& info, int alpha, int b
     moveList moves;
     generatePseudoLegalMoves(board, moves);
 
-    for (const Move& move : moves) {
+    for (int i = 0; i < moves.size(); i++) {
         if (info.stop) {
             return bestScore;
         }
+
+        pickNextMove(board, moves, hint, i);
+
+        const Move& move = moves[i];
 
         board.makeMove(move);
 
@@ -81,7 +92,7 @@ int negamax(Board& board, int depth, int ply, SearchInfo& info, int alpha, int b
             std::cout << "info currmove " << moveToUci(move) << " currmovenumber " << moveNumber << "\n";
         }
 
-        int score = -negamax(board, depth - 1, ply + 1, info, -beta, -alpha);
+        int score = -negamax(board, depth - 1, ply + 1, info, -beta, -alpha, {NO_SQUARE, NO_SQUARE});
 
         board.unmakeMove(move);
 
