@@ -205,9 +205,9 @@ void uciLoop(Board& board) {
             std::string token;
             int depth = 100;
             bool depthLimit = false;
-            std::uint64_t wtime = 600000;
+            std::uint64_t wtime = 300000;
             std::uint64_t winc = 1000;
-            std::uint64_t btime = 600000;
+            std::uint64_t btime = 300000;
             std::uint64_t binc = 1000;
             std::uint64_t timeLimit = 1000000000;
 
