@@ -27,7 +27,7 @@ public:
 
     Color sideToMove = WHITE;
 
-    BoardState stateStack[256]{};
+    BoardState stateStack[1024]{};
     int ply = 0;
 
     Board();
