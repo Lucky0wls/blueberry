@@ -139,3 +139,105 @@ void generatePseudoLegalMoves(const Board& board, moveList& moves) {
         }
     }
 }
+
+void generatePseudoLegalCaptures(const Board& board, moveList& moves) {
+    Bitboard knights = board.pieces[board.sideToMove][KNIGHT];
+    Bitboard kings = board.pieces[board.sideToMove][KING];
+    Bitboard bishops = board.pieces[board.sideToMove][BISHOP];
+    Bitboard rooks = board.pieces[board.sideToMove][ROOK];
+    Bitboard queens = board.pieces[board.sideToMove][QUEEN];
+    Bitboard pawns = board.pieces[board.sideToMove][PAWN];
+    Bitboard occupied = board.occupied();
+    Bitboard them = board.colorPieces(board.sideToMove == WHITE ? BLACK : WHITE);
+
+    while (knights) {
+        int sq = popSq(knights);
+
+        Bitboard attacks = attacks::KNIGHT_ATTACKS[sq];
+        Bitboard knightMoves = attacks & them;
+        while (knightMoves) {
+            int to = popSq(knightMoves);
+            moves.push({static_cast<Square>(sq), static_cast<Square>(to)});
+        }
+    }
+
+    while (kings) {
+        int sq = popSq(kings);
+
+        Bitboard attacks = attacks::KING_ATTACKS[sq];
+        Bitboard kingMoves = attacks & them;
+        while (kingMoves) {
+            int to = popSq(kingMoves);
+            moves.push({static_cast<Square>(sq), static_cast<Square>(to)});
+        }
+    }
+
+    while (bishops) {
+        int sq = popSq(bishops);
+
+        Bitboard attacks = bishopAttacks(sq, occupied);
+        Bitboard bishopMoves = attacks & them;
+        while (bishopMoves) {
+            int to = popSq(bishopMoves);
+            moves.push({static_cast<Square>(sq), static_cast<Square>(to)});
+        }
+    }
+
+    while (rooks) {
+        int sq = popSq(rooks);
+
+        Bitboard attacks = rookAttacks(sq, occupied);
+        Bitboard rookMoves = attacks & them;
+        while (rookMoves) {
+            int to = popSq(rookMoves);
+            moves.push({static_cast<Square>(sq), static_cast<Square>(to)});
+        }
+    }
+
+    while (queens) {
+        int sq = popSq(queens);
+
+        Bitboard attacks = bishopAttacks(sq, occupied) | rookAttacks(sq, occupied);
+        Bitboard queenMoves = attacks & them;
+        while (queenMoves) {
+            int to = popSq(queenMoves);
+            moves.push({static_cast<Square>(sq), static_cast<Square>(to)});
+        }
+    }
+
+    while (pawns) {
+        int from = popSq(pawns);
+        int rank = from / 8;
+
+        bool promotion = (board.sideToMove == WHITE && rank == 6) || (board.sideToMove == BLACK && rank == 1);
+
+        Bitboard captures = attacks::PAWN_ATTACKS[board.sideToMove][from] & them;
+
+        Square ep = board.stateStack[board.ply].enPassantSquare;
+
+        if (ep != NO_SQUARE && isSet(attacks::PAWN_ATTACKS[board.sideToMove][from], ep)) {
+            moves.push({static_cast<Square>(from), ep, EN_PASSANT});
+        }
+
+        while (captures) {
+            int to = popSq(captures);
+            if (promotion) {
+                moves.push({static_cast<Square>(from), static_cast<Square>(to), PROMOTION_KNIGHT});
+                moves.push({static_cast<Square>(from), static_cast<Square>(to), PROMOTION_BISHOP});
+                moves.push({static_cast<Square>(from), static_cast<Square>(to), PROMOTION_ROOK});
+                moves.push({static_cast<Square>(from), static_cast<Square>(to), PROMOTION_QUEEN});
+            }
+        }
+
+        int to = board.sideToMove == WHITE ? from + 8 : from - 8;
+
+        if (to >= 0 && to < 64 && !isSet(occupied, to)) {
+            if (promotion) {
+                moves.push({static_cast<Square>(from), static_cast<Square>(to), PROMOTION_KNIGHT});
+                moves.push({static_cast<Square>(from), static_cast<Square>(to), PROMOTION_BISHOP});
+                moves.push({static_cast<Square>(from), static_cast<Square>(to), PROMOTION_ROOK});
+                moves.push({static_cast<Square>(from), static_cast<Square>(to), PROMOTION_QUEEN});
+            }
+        }
+    }
+}

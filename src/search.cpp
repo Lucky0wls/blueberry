@@ -34,6 +34,86 @@ bool timeUp(const SearchInfo& info) {
     return elapsedTime(info.start) >= info.timeLimit;
 }
 
+int qsearch(Board& board, int ply, SearchInfo& info, int alpha, int beta) {
+    info.nodes++;
+    info.selDepth = std::max(info.selDepth, ply);
+
+    int legal = 0;
+    Color stm = board.sideToMove;
+    bool inCheck = board.inCheck(stm);
+
+    if (timeUp(info)) {
+        info.stop = true;
+    }
+
+    if (info.stop) {
+        return evaluate(board);
+    }
+
+    if (ply > 0 && (board.stateStack[board.ply].halfmoveClock >= 100 || board.isRepetition())) {
+        return drawScore;
+    }
+
+    moveList moves;
+
+    if (board.inCheck(stm)) {
+        generatePseudoLegalMoves(board, moves);
+    } else {
+        int standPat = evaluate(board);
+
+        if (standPat >= beta) {
+            return standPat;
+        }
+
+        if (standPat > alpha) {
+            alpha = standPat;
+        }
+
+        generatePseudoLegalCaptures(board, moves);
+    }
+
+    for (int i = 0; i < moves.size(); i++) {
+        if (info.stop) {
+            return -inf;
+        }
+
+        pickNextMove(board, moves, {NO_SQUARE, NO_SQUARE}, i);
+
+        const Move& move = moves[i];
+
+        board.makeMove(move);
+
+        if (board.inCheck(stm)) {
+            board.unmakeMove(move);
+            continue;
+        }
+
+        legal++;
+
+        int score = -qsearch(board, ply + 1, info, -beta, -alpha);
+
+        board.unmakeMove(move);
+
+        if (info.stop) {
+            return 0;
+        }
+
+        if (score >= beta) {
+            return score;
+        }
+
+        if (score > alpha) {
+            alpha = score;
+        }
+    }
+
+    if (inCheck && legal == 0) {
+        return -mateScore + ply;
+    }
+
+    return alpha;
+}
+
 int negamax(Board& board, int depth, int ply, SearchInfo& info, int alpha, int beta, Move hint) {
     pvLength[ply] = ply;
 
@@ -49,8 +129,7 @@ int negamax(Board& board, int depth, int ply, SearchInfo& info, int alpha, int b
     }
 
     if (info.stop) {
-        int score = evaluate(board);
-        return score;
+        return evaluate(board);
     }
 
     if (ply > 0 && (board.stateStack[board.ply].halfmoveClock >= 100 || board.isRepetition())) {
@@ -62,8 +141,7 @@ int negamax(Board& board, int depth, int ply, SearchInfo& info, int alpha, int b
     }
 
     if (depth == 0) {
-        int score = evaluate(board);
-        return score;
+        return qsearch(board, ply, info, alpha, beta);
     }
 
     moveList moves;

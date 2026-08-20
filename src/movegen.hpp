@@ -54,3 +54,4 @@ private:
 };
 
 void generatePseudoLegalMoves(const Board& board, moveList& moves);
+void generatePseudoLegalCaptures(const Board& board, moveList& moves);
