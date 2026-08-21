@@ -1,2 +1,2 @@
 # blueberry
-Chess engine (in development)
+Chess engine in C++
