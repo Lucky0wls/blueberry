@@ -107,14 +107,14 @@ int iterativeDeepening(Board& board, int maxDepth, SearchInfo& info) {
         }
 
         if (mateScore != 0) {
+            if (info.selDepth == 0) info.selDepth = depth;
             std::cout << "info depth " << depth << " seldepth " << info.selDepth << " nodes " << info.nodes << " nps " << nps << " time " << time << " score mate " << mateScore << " pv ";
             for (int i = 0; i < pvLength[0]; i++) {
                 std::cout << moveToUci(pvTable[0][i]) << " ";
             }
             std::cout << "\n";
-
-            break;
         } else {
+            if (info.selDepth == 0) info.selDepth = depth;
             std::cout << "info depth " << depth << " seldepth " << info.selDepth << " nodes " << info.nodes << " nps " << nps << " time " << time << " score cp " << bestScore << " pv ";
             for (int i = 0; i < pvLength[0]; i++) {
                 std::cout << moveToUci(pvTable[0][i]) << " ";
@@ -164,6 +164,7 @@ void uciLoop(Board& board) {
             std::cout << "readyok\n";
         } else if (cmd == "ucinewgame") {
             board.setStartpos();
+            clearTT();
         }
         else if (cmd == "position") {
             std::string type;
@@ -205,11 +206,11 @@ void uciLoop(Board& board) {
             std::string token;
             int depth = 100;
             bool depthLimit = false;
-            std::uint64_t wtime = 300000;
-            std::uint64_t winc = 1000;
-            std::uint64_t btime = 300000;
-            std::uint64_t binc = 1000;
-            std::uint64_t timeLimit = 1000000000;
+            std::uint64_t wtime = 0;
+            std::uint64_t winc = 0;
+            std::uint64_t btime = 0;
+            std::uint64_t binc = 0;
+            std::uint64_t timeLimit = 5000;
 
             while (ss >> token) {
                 if (token == "depth") {
@@ -226,7 +227,9 @@ void uciLoop(Board& board) {
                 }
             }
 
-            timeLimit = board.sideToMove == WHITE ? (wtime / 20) + (winc / 2) : (btime / 20) + (binc / 2);
+            bool isTimeLimited = wtime + btime + binc + winc != 0;
+
+            if (isTimeLimited) timeLimit = board.sideToMove == WHITE ? (wtime / 20) + (winc / 2) : (btime / 20) + (binc / 2); else if (depthLimit) timeLimit = 9999999999999;
 
             SearchInfo info {
                 .start = std::chrono::steady_clock::now(),

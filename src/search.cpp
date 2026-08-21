@@ -17,10 +17,66 @@ const int drawScore = 0;
 std::array<std::array<Move, 256>, 256> pvTable{};
 std::array<int, 256> pvLength{};
 
-struct ScoredMove {
-    Move move;
-    int score;
-};
+TTEntry tt[1048576];
+
+int scoreToTT(int score, int ply) {
+    if (score > 90000 && score < 110000)
+        return score + ply;
+
+    if (score < -90000 && score > -110000)
+        return score - ply;
+
+    return score;
+}
+
+int scoreFromTT(int score, int ply) {
+    if (score > 90000 && score < 110000)
+        return score - ply;
+
+    if (score < -90000 && score > -110000)
+        return score + ply;
+
+    return score;
+}
+
+void storeTT(const Move& move, std::uint64_t key, int depth, int score, int flag, int ply) {
+    int i = key & (1048576 - 1);
+    if (move != NO_MOVE) {
+        tt[i].key = key;
+        tt[i].depth = depth;
+        tt[i].flag = flag;
+        tt[i].bestMove = move;
+        tt[i].score = scoreToTT(score, ply);
+    }
+}
+
+int probeTT(int index, std::uint64_t key, int depth, int alpha, int beta, int ply) {
+    if (tt[index].depth >= depth) {
+        int score = scoreFromTT(tt[index].score, ply);
+
+        if (tt[index].flag == ttExact) {
+            return score;
+        }
+
+        if (tt[index].flag == ttAlpha && score <= alpha) {
+            return score;
+        }
+
+        if (tt[index].flag == ttBeta && score >= beta) {
+            return score;
+        }
+
+    }
+
+    return -inf;
+}
+
+void clearTT() {
+    for (int i = 0; i < 1048576; i++) {
+        tt[i].key = 0;
+        tt[i].bestMove = NO_MOVE;
+    }
+}
 
 static std::uint64_t elapsedTime(std::chrono::steady_clock::time_point start) {
     auto now = std::chrono::steady_clock::now();
@@ -77,7 +133,7 @@ int qsearch(Board& board, int ply, SearchInfo& info, int alpha, int beta) {
             return -inf;
         }
 
-        pickNextMove(board, moves, {NO_SQUARE, NO_SQUARE}, i);
+        pickNextMove(board, moves, NO_MOVE, i, -1, -1);
 
         const Move& move = moves[i];
 
@@ -116,7 +172,10 @@ int qsearch(Board& board, int ply, SearchInfo& info, int alpha, int beta) {
 
 int negamax(Board& board, int depth, int ply, SearchInfo& info, int alpha, int beta, Move hint) {
     pvLength[ply] = ply;
-
+    Move bestMove = NO_MOVE;
+    std::uint64_t key = board.stateStack[board.ply].zobristKey;
+    int ttIndex = key & (1048576 - 1);
+    int originalAlpha = alpha;
     Color stm = board.sideToMove;
     int bestScore = -inf;
     int moveNumber = 0;
@@ -144,6 +203,16 @@ int negamax(Board& board, int depth, int ply, SearchInfo& info, int alpha, int b
         return qsearch(board, ply, info, alpha, beta);
     }
 
+    if (key == tt[ttIndex].key) {
+        int ttScore = probeTT(ttIndex, key, depth, alpha, beta, ply);
+        if (ttScore != -inf) {
+            pvTable[ply][ply] = tt[ttIndex].bestMove;
+            pvLength[ply] = ply + 1;
+
+            return ttScore;
+        }
+    }
+
     moveList moves;
     generatePseudoLegalMoves(board, moves);
 
@@ -152,7 +221,7 @@ int negamax(Board& board, int depth, int ply, SearchInfo& info, int alpha, int b
             return bestScore;
         }
 
-        pickNextMove(board, moves, hint, i);
+        pickNextMove(board, moves, hint, i, ttIndex, key);
 
         const Move& move = moves[i];
 
@@ -180,6 +249,7 @@ int negamax(Board& board, int depth, int ply, SearchInfo& info, int alpha, int b
 
         if (score > bestScore) {
             bestScore = score;
+            bestMove = move;
 
             pvTable[ply][ply] = move;
 
@@ -194,12 +264,19 @@ int negamax(Board& board, int depth, int ply, SearchInfo& info, int alpha, int b
             alpha = score;
         }
         if (alpha >= beta) {
+            storeTT(move, key, depth, bestScore, ttBeta, ply);
             return bestScore;
         }
     }
 
     if (legal == 0) {
         return board.inCheck(stm) ? -mateScore + ply : drawScore;
+    }
+
+    if (alpha != originalAlpha) {
+        storeTT(bestMove, key, depth, bestScore, ttExact, ply);
+    } else {
+        storeTT(bestMove, key, depth, bestScore, ttAlpha, ply);
     }
 
     return bestScore;

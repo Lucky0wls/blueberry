@@ -77,3 +77,5 @@ struct Move {
         return !(*this == other);
     }
 };
+
+inline const Move NO_MOVE = {NO_SQUARE, NO_SQUARE};

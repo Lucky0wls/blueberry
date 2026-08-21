@@ -5,6 +5,7 @@
 #include "movegen.hpp"
 #include "uci.hpp"
 #include "zobrist.hpp"
+#include "search.hpp"
 
 std::uint64_t perft(Board& board, int depth) {
     Color us = board.sideToMove;
@@ -34,6 +35,7 @@ std::uint64_t perft(Board& board, int depth) {
 
 int main(int argc, char** argv) {
     initZobrist();
+    clearTT();
 
     Board board;
 
