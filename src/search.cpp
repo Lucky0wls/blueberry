@@ -98,7 +98,7 @@ int qsearch(Board& board, int ply, SearchInfo& info, int alpha, int beta) {
     Color stm = board.sideToMove;
     bool inCheck = board.inCheck(stm);
 
-    if (timeUp(info)) {
+    if ((info.nodes & 2047) == 0 && timeUp(info)) {
         info.stop = true;
     }
 
@@ -183,7 +183,7 @@ int negamax(Board& board, int depth, int ply, SearchInfo& info, int alpha, int b
     info.nodes++;
     info.selDepth = std::max(info.selDepth, ply);
 
-    if (timeUp(info)) {
+    if ((info.nodes & 2047) == 0 && timeUp(info)) {
         info.stop = true;
     }
 
