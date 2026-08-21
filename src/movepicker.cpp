@@ -43,7 +43,7 @@ int mvvLva(const Board& board, const Move& move) {
     return 10'000 + victim_value * 10 - attacker_value;
 }
 
-int scoreMove(const Board& board, Move move, Move hint, int ttIndex, std::uint64_t ttKey) {
+int scoreMove(const Board& board, Move move, Move hint, int ttIndex, std::uint64_t ttKey, int ply) {
     if (ttIndex >= 0 && ttKey >= 0 && tt[ttIndex].key == ttKey && move == tt[ttIndex].bestMove) {
         return 2'000'000;
     }
@@ -56,15 +56,20 @@ int scoreMove(const Board& board, Move move, Move hint, int ttIndex, std::uint64
         return 600'000 + mvvLva(board, move);
     }
 
+    if (ply >= 0 && ply < 256) {
+        if (move == killer1[ply]) return 590'000;
+        if (move == killer2[ply]) return 580'000;
+    }
+
     return 0;
 }
 
-void pickNextMove(const Board& board, moveList& moves, Move hint, int start, int ttIndex, std::uint64_t ttKey) {
+void pickNextMove(const Board& board, moveList& moves, Move hint, int start, int ttIndex, std::uint64_t ttKey, int ply) {
     int best = 0;
     int bestIndex = start;
 
     for (int i = start + 1; i < moves.size(); i++) {
-        int score = scoreMove(board, moves[i], hint, ttIndex, ttKey);
+        int score = scoreMove(board, moves[i], hint, ttIndex, ttKey, ply);
 
         if (score > best) {
             best = score;

@@ -17,6 +17,9 @@ const int drawScore = 0;
 std::array<std::array<Move, 256>, 256> pvTable{};
 std::array<int, 256> pvLength{};
 
+Move killer1[256];
+Move killer2[256];
+
 TTEntry tt[1048576];
 
 int scoreToTT(int score, int ply) {
@@ -78,6 +81,13 @@ void clearTT() {
     }
 }
 
+void clear_killers() {
+    for (int i = 0; i < 256; i++) {
+        killer1[i] = NO_MOVE;
+        killer2[i] = NO_MOVE;
+    }
+}
+
 static std::uint64_t elapsedTime(std::chrono::steady_clock::time_point start) {
     auto now = std::chrono::steady_clock::now();
 
@@ -133,7 +143,7 @@ int qsearch(Board& board, int ply, SearchInfo& info, int alpha, int beta) {
             return -inf;
         }
 
-        pickNextMove(board, moves, NO_MOVE, i, -1, -1);
+        pickNextMove(board, moves, NO_MOVE, i, -1, -1, -1);
 
         const Move& move = moves[i];
 
@@ -221,7 +231,7 @@ int negamax(Board& board, int depth, int ply, SearchInfo& info, int alpha, int b
             return bestScore;
         }
 
-        pickNextMove(board, moves, hint, i, ttIndex, key);
+        pickNextMove(board, moves, hint, i, ttIndex, key, ply);
 
         const Move& move = moves[i];
 
@@ -264,6 +274,12 @@ int negamax(Board& board, int depth, int ply, SearchInfo& info, int alpha, int b
             alpha = score;
         }
         if (alpha >= beta) {
+            if (!board.isCapture(move) && ply >= 0 && ply < 256) {
+                if (killer1[ply] != move) {
+                    killer2[ply] = killer1[ply];
+                    killer1[ply] = move;
+                }
+            }
             storeTT(move, key, depth, bestScore, ttBeta, ply);
             return bestScore;
         }

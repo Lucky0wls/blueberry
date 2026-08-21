@@ -28,7 +28,11 @@ struct TTEntry {
 
 extern TTEntry tt[1048576];
 
+extern Move killer1[256];
+extern Move killer2[256];
+
 void clearTT();
+void clear_killers();
 
 extern std::array<std::array<Move, 256>, 256> pvTable;
 extern std::array<int, 256> pvLength;
