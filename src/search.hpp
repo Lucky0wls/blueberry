@@ -26,10 +26,10 @@ struct TTEntry {
     int flag = ttNone;
 };
 
-extern TTEntry tt[1048576];
+extern std::array<TTEntry, 1048576> tt;
 
-extern Move killer1[256];
-extern Move killer2[256];
+extern std::array<Move, 256> killer1;
+extern std::array<Move, 256> killer2;
 
 void clearTT();
 void clear_killers();

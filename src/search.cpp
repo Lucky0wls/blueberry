@@ -17,10 +17,10 @@ const int drawScore = 0;
 std::array<std::array<Move, 256>, 256> pvTable{};
 std::array<int, 256> pvLength{};
 
-Move killer1[256];
-Move killer2[256];
+std::array<Move, 256> killer1{};
+std::array<Move, 256> killer2{};
 
-TTEntry tt[1048576];
+std::array<TTEntry, 1048576> tt{};
 
 int scoreToTT(int score, int ply) {
     if (score > 90000 && score < 110000)
