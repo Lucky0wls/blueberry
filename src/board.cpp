@@ -193,7 +193,7 @@ void Board::setStartpos() {
 bool Board::isCapture(const Move& move) const {
     Bitboard them = this->colorPieces(this->sideToMove == WHITE ? BLACK : WHITE);
 
-    return isSet(them, move.to);
+    return isSet(them, move.to) || move.flag == EN_PASSANT;
 }
 
 void Board::makeMove(const Move& move) {
