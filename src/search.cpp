@@ -223,6 +223,12 @@ int negamax(Board& board, int depth, int ply, SearchInfo& info, int alpha, int b
         }
     }
 
+    int extension = 0;
+
+    if (board.inCheck(WHITE) || board.inCheck(BLACK)) {
+        extension = 1;
+    }   
+
     moveList moves;
     generatePseudoLegalMoves(board, moves);
 
@@ -234,6 +240,8 @@ int negamax(Board& board, int depth, int ply, SearchInfo& info, int alpha, int b
         pickNextMove(board, moves, hint, i, ttIndex, key, ply);
 
         const Move& move = moves[i];
+
+        bool lmrPossible = (!board.isCapture(move) && extension == 0 && depth >= 4 && moveNumber > 5);
 
         board.makeMove(move);
 
@@ -249,7 +257,17 @@ int negamax(Board& board, int depth, int ply, SearchInfo& info, int alpha, int b
             std::cout << "info currmove " << moveToUci(move) << " currmovenumber " << moveNumber << "\n";
         }
 
-        int score = -negamax(board, depth - 1, ply + 1, info, -beta, -alpha, {NO_SQUARE, NO_SQUARE});
+        int score;
+
+        if (lmrPossible) {
+            score = -negamax(board, depth - 1 - 2, ply + 1, info, -beta, -alpha, {NO_SQUARE, NO_SQUARE});
+            if (!info.stop && score > alpha) {
+                score = -negamax(board, depth - 1, ply + 1, info, -beta, -alpha, {NO_SQUARE, NO_SQUARE});
+            }
+        } else {
+            score = -negamax(board, depth - 1 + extension, ply + 1, info, -beta, -alpha, {NO_SQUARE, NO_SQUARE});
+        }
+        
 
         board.unmakeMove(move);
 
