@@ -332,7 +332,8 @@ void Board::makeNullMove() {
     stateStack[ply] = stateStack[ply - 1];
 
     if (stateStack[ply].enPassantSquare != NO_SQUARE) {
-        key ^= zobristEnPassant[stateStack[ply].enPassantSquare];
+        int epFile = stateStack[ply].enPassantSquare % 8;
+        key ^= zobristEnPassant[epFile];
         stateStack[ply].enPassantSquare = NO_SQUARE;
     }
 
