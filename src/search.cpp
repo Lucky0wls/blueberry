@@ -180,7 +180,7 @@ int qsearch(Board& board, int ply, SearchInfo& info, int alpha, int beta) {
     return alpha;
 }
 
-int negamax(Board& board, int depth, int ply, SearchInfo& info, int alpha, int beta, Move hint) {
+int negamax(Board& board, int depth, int ply, SearchInfo& info, int alpha, int beta, Move hint, bool nullMoveAllowed) {
     pvLength[ply] = ply;
     Move bestMove = NO_MOVE;
     std::uint64_t key = board.stateStack[board.ply].zobristKey;
@@ -228,7 +228,19 @@ int negamax(Board& board, int depth, int ply, SearchInfo& info, int alpha, int b
 
     if (board.inCheck(WHITE) || board.inCheck(BLACK)) {
         extension = 1;
-    }   
+    }
+
+    bool shouldNullMove = ply > 0 && extension == 0 && depth >= 4 && std::abs(beta) < 90000 && board.hasNonPawnMaterial(stm) && nullMoveAllowed;
+
+    if (shouldNullMove) {
+        board.makeNullMove();
+        int score = -negamax(board, depth - 1 - 2, ply + 1, info, -beta, -beta + 1, NO_MOVE, false);
+        board.unmakeNullMove();
+
+        if (!info.stop && score >= beta) {
+            return score;
+        }
+    }
 
     moveList moves;
     generatePseudoLegalMoves(board, moves);
@@ -264,12 +276,12 @@ int negamax(Board& board, int depth, int ply, SearchInfo& info, int alpha, int b
         int score;
 
         if (lmrPossible) {
-            score = -negamax(board, depth - 1 - 2, ply + 1, info, -beta, -alpha, {NO_SQUARE, NO_SQUARE});
+            score = -negamax(board, depth - 1 - 2, ply + 1, info, -beta, -alpha, NO_MOVE, true);
             if (!info.stop && score > alpha) {
-                score = -negamax(board, depth - 1, ply + 1, info, -beta, -alpha, {NO_SQUARE, NO_SQUARE});
+                score = -negamax(board, depth - 1, ply + 1, info, -beta, -alpha, NO_MOVE, true);
             }
         } else {
-            score = -negamax(board, depth - 1 + extension, ply + 1, info, -beta, -alpha, {NO_SQUARE, NO_SQUARE});
+            score = -negamax(board, depth - 1 + extension, ply + 1, info, -beta, -alpha, NO_MOVE, true);
         }
         
 

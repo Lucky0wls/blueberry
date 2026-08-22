@@ -37,4 +37,4 @@ void clear_killers();
 extern std::array<std::array<Move, 256>, 256> pvTable;
 extern std::array<int, 256> pvLength;
 
-int negamax(Board& board, int depth, int ply, SearchInfo& info, int alpha, int beta, Move hint);
+int negamax(Board& board, int depth, int ply, SearchInfo& info, int alpha, int beta, Move hint, bool nullMoveAllowed);

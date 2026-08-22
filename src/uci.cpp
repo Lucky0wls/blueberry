@@ -79,12 +79,12 @@ std::string moveToUci(const Move& move) {
 int iterativeDeepening(Board& board, int maxDepth, SearchInfo& info) {
     int bestScore = 0;
     haveBestMove = false;
-    Move hint = {NO_SQUARE, NO_SQUARE};
+    Move hint = NO_MOVE;
 
     for (int depth = 1; depth <= maxDepth; depth++) {
         if (depth > 1) hint = bestMove;
         info.selDepth = 0;
-        int score = negamax(board, depth, 0, info, -1'000'000'000, 1'000'000'000, hint);
+        int score = negamax(board, depth, 0, info, -1'000'000'000, 1'000'000'000, hint, true);
 
         if (info.stop) {
             break;

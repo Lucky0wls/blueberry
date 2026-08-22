@@ -56,8 +56,13 @@ public:
 
     void setFen(const std::string& fen);
 
+    bool hasNonPawnMaterial(const Color& color);
+
     void makeMove(const Move& move);
     void unmakeMove(const Move& move);
+
+    void makeNullMove();
+    void unmakeNullMove();
 
     bool isRepetition() const;
 

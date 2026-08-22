@@ -196,6 +196,12 @@ bool Board::isCapture(const Move& move) const {
     return isSet(them, move.to) || move.flag == EN_PASSANT;
 }
 
+bool Board::hasNonPawnMaterial(const Color& color) {
+    Bitboard nonPawnMaterial = pieces[color][KNIGHT] | pieces[color][BISHOP] | pieces[color][ROOK] | pieces[color][QUEEN];
+
+    return nonPawnMaterial != 0;
+}
+
 void Board::makeMove(const Move& move) {
     PieceInfo info = pieceInfoAt(move.from);
     if (info.exists == false) {
@@ -317,6 +323,26 @@ void Board::makeMove(const Move& move) {
 
     sideToMove = sideToMove == WHITE ? BLACK : WHITE;
     key ^= zobristSide;
+}
+
+void Board::makeNullMove() {
+    ply++;
+    std::uint64_t& key = stateStack[ply].zobristKey;
+
+    stateStack[ply] = stateStack[ply - 1];
+
+    if (stateStack[ply].enPassantSquare != NO_SQUARE) {
+        key ^= zobristEnPassant[stateStack[ply].enPassantSquare];
+        stateStack[ply].enPassantSquare = NO_SQUARE;
+    }
+
+    sideToMove = sideToMove == WHITE ? BLACK : WHITE;
+    key ^= zobristSide;
+}
+
+void Board::unmakeNullMove() {
+    sideToMove = sideToMove == WHITE ? BLACK : WHITE;
+    ply--;
 }
 
 void Board::setFen(const std::string& fen) {
