@@ -189,6 +189,7 @@ int negamax(Board& board, int depth, int ply, SearchInfo& info, int alpha, int b
     Color stm = board.sideToMove;
     int bestScore = -inf;
     int moveNumber = 0;
+    int moveIndex = -1;
     int legal = 0;
     info.nodes++;
     info.selDepth = std::max(info.selDepth, ply);
@@ -241,7 +242,7 @@ int negamax(Board& board, int depth, int ply, SearchInfo& info, int alpha, int b
 
         const Move& move = moves[i];
 
-        bool lmrPossible = (!board.isCapture(move) && extension == 0 && depth >= 4 && moveNumber > 5);
+        bool capture = board.isCapture(move);
 
         board.makeMove(move);
 
@@ -249,6 +250,9 @@ int negamax(Board& board, int depth, int ply, SearchInfo& info, int alpha, int b
             board.unmakeMove(move);
             continue;
         }
+
+        moveIndex++;
+        bool lmrPossible = (!capture && extension == 0 && depth >= 4 && moveIndex >= 5);
 
         legal++;
 
