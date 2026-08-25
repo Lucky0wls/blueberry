@@ -1,5 +1,6 @@
 #include "search.hpp"
 #include "evaluate.hpp"
+#include "movepicker.hpp"
 
 int inf = 1'000'000'000;
 int mateScore = 100'000;
@@ -62,10 +63,14 @@ int negamax(Board& board, int depth, int alpha, int beta, int ply, searchInfo& i
         return board.inCheck() ? -mateScore + ply : 0;
     }
 
-    for (const Move& move : moves) {
+    for (int i = 0; i < moves.size(); i++) {
         if (info.stop) {
             return 0;
         }
+
+        pickNextMove(board, moves, i);
+
+        const Move& move = moves[i];
 
         board.makeMove(move);
 
