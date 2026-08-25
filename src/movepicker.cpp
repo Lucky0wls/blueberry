@@ -23,7 +23,7 @@ int pieceValue(PieceType piece) {
     return 0;
 }
 
-int mvvLva(const Board& board, Move move) {
+int mvvLva(const Board& board, const Move& move) {
     Square from = move.from();
     Square to = move.to();
 
@@ -40,12 +40,20 @@ int mvvLva(const Board& board, Move move) {
     return 10'000 + victim_value * 10 - attacker_value;
 }
 
-void pickNextMove(const Board& board, Movelist& moves, int start) {
+int scoreMove(const Board& board, const Move& hint, const Move& move) {
+    if (move == hint && hint != Move::NO_MOVE) {
+        return 1'000'000;
+    }
+
+    return mvvLva(board, move);
+}
+
+void pickNextMove(const Board& board, Movelist& moves, int start, const Move& hint) {
     int best = -1'000'000'000;
     int bestIndex = start;
 
     for (int i = start; i < moves.size(); i++) {
-        int score = mvvLva(board, moves[i]);
+        int score = scoreMove(board, hint, moves[i]);
 
         if (score > best) {
             best = score;

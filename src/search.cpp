@@ -70,7 +70,7 @@ int qsearch(Board& board, int ply, int alpha, int beta, searchInfo& info) {
             return 0;
         }
 
-        pickNextMove(board, moves, i);
+        pickNextMove(board, moves, i, Move::NO_MOVE);
 
         const Move& move = moves[i];
 
@@ -96,7 +96,7 @@ int qsearch(Board& board, int ply, int alpha, int beta, searchInfo& info) {
     return alpha;
 }
 
-int negamax(Board& board, int depth, int alpha, int beta, int ply, searchInfo& info) {
+int negamax(Board& board, int depth, int alpha, int beta, int ply, searchInfo& info, const Move& hint) {
     int bestScore = -inf;
     
     pvLength[ply] = ply;
@@ -152,13 +152,13 @@ int negamax(Board& board, int depth, int alpha, int beta, int ply, searchInfo& i
             return 0;
         }
 
-        pickNextMove(board, moves, i);
+        pickNextMove(board, moves, i, hint);
 
         const Move& move = moves[i];
-
+        
         board.makeMove(move);
 
-        int score = -negamax(board, depth - 1, -beta, -alpha, ply + 1, info);
+        int score = -negamax(board, depth - 1, -beta, -alpha, ply + 1, info, Move::NO_MOVE);
 
         board.unmakeMove(move);
 

@@ -18,4 +18,4 @@ struct searchInfo {
 extern std::array<std::array<Move, 256>, 256> pvTable;
 extern std::array<int, 256> pvLength;
 
-int negamax(Board& board, int depth, int alpha, int beta, int ply, searchInfo& info);
+int negamax(Board& board, int depth, int alpha, int beta, int ply, searchInfo& info, const Move& hint);

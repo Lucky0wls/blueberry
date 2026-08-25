@@ -1,7 +1,5 @@
 #include "uci.hpp"
 
-Move bestMove = Move::NO_MOVE;
-
 #ifndef GIT_SHA
 #define GIT_SHA "nogit"
 #endif
@@ -10,15 +8,21 @@ Move bestMove = Move::NO_MOVE;
 #define GIT_DATE "01011970"
 #endif
 
+Move bestMove = Move::NO_MOVE;
+
 std::string startpos = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
 int iterativeDeepening(Board& board, int maxDepth, searchInfo& info) {
     int bestScore = 0;
+    Move hint = Move::NO_MOVE;
 
     for (int depth = 1; depth <= maxDepth; depth++) {
         info.selDepth = 0;
+        if (depth > 1) {
+            hint = bestMove;
+        }
 
-        int score = negamax(board, depth, -1'000'000'000, 1'000'000'000, 0, info);
+        int score = negamax(board, depth, -1'000'000'000, 1'000'000'000, 0, info, hint);
 
         if (info.stop) {
             break;
