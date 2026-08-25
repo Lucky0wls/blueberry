@@ -18,7 +18,7 @@ int iterativeDeepening(Board& board, int maxDepth, searchInfo& info) {
     for (int depth = 1; depth <= maxDepth; depth++) {
         info.selDepth = 0;
 
-        int score = negamax(board, depth, 0, info);
+        int score = negamax(board, depth, -1'000'000'000, 1'000'000'000, 0, info);
 
         if (info.stop) {
             break;
