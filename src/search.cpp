@@ -12,6 +12,90 @@ bool timeUp(const searchInfo& info) {
     return elapsedTime(info.start) >= info.timeLimit;
 }
 
+int qsearch(Board& board, int ply, int alpha, int beta, searchInfo& info) {
+    info.nodes++;
+    info.selDepth = std::max(info.selDepth, ply);
+
+    if ((info.nodes & 2047) == 0 && timeUp(info)) {
+        info.stop = true;
+    }
+
+    if (info.stop) {
+        return 0;
+    }
+
+    if (ply > 0) {
+        if (board.isHalfMoveDraw()) {
+            return board.getHalfMoveDrawType().first == GameResultReason::CHECKMATE ? -mateScore + ply : 0;
+        }
+        if (board.isRepetition(1)) {
+            return 0;
+        }
+    }
+
+    if (ply >= 245) {
+        return evaluate(board);
+    }
+
+    Movelist moves;
+
+    alpha = std::max(alpha, -mateScore + ply);
+    beta = std::min(beta, mateScore - ply);
+
+    if (alpha >= beta) {
+        return alpha;
+    }
+
+    if (board.inCheck()) {
+        movegen::legalmoves(moves, board);
+        if (moves.empty()) {
+            return -mateScore + ply;
+        }
+    } else {
+        int standPat = evaluate(board);
+
+        if (standPat >= beta) {
+            return standPat;
+        }
+
+        if (standPat > alpha) {
+            alpha = standPat;
+        }
+
+        movegen::legalmoves<movegen::MoveGenType::CAPTURE>(moves, board);
+    }
+
+    for (int i = 0; i < moves.size(); i++) {
+        if (info.stop) {
+            return 0;
+        }
+
+        pickNextMove(board, moves, i);
+
+        const Move& move = moves[i];
+
+        board.makeMove(move);
+
+        int score = -qsearch(board, ply + 1, -beta, -alpha, info);
+
+        board.unmakeMove(move);
+
+        if (info.stop) {
+            return 0;
+        }
+
+        if (score >= beta) {
+            return score;
+        }
+
+        if (score > alpha) {
+            alpha = score;
+        }
+    }
+
+    return alpha;
+}
+
 int negamax(Board& board, int depth, int alpha, int beta, int ply, searchInfo& info) {
     int bestScore = -inf;
     
@@ -49,7 +133,7 @@ int negamax(Board& board, int depth, int alpha, int beta, int ply, searchInfo& i
     }
 
     if (depth == 0) {
-        return evaluate(board);
+        return qsearch(board, ply, alpha, beta, info);
     }
 
     if (ply >= 245) {
