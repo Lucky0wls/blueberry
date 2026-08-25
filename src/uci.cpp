@@ -104,6 +104,7 @@ void uciLoop(Board& board) {
         } else if (cmd == "isready") {
             std::cout << "readyok\n";
         } else if (cmd == "ucinewgame") {
+            clearTT();
             board.setFen(startpos);
         } else if (cmd == "position") {
             std::string type;

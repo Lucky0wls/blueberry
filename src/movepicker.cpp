@@ -41,6 +41,13 @@ int mvvLva(const Board& board, const Move& move) {
 }
 
 int scoreMove(const Board& board, const Move& hint, const Move& move) {
+    std::uint64_t ttKey = board.hash();
+    int ttIndex = ttKey & (1048576 - 1);
+
+    if (tt[ttIndex].key == ttKey && tt[ttIndex].bestMove == move) {
+        return 2'000'000;
+    }
+
     if (move == hint && hint != Move::NO_MOVE) {
         return 1'000'000;
     }

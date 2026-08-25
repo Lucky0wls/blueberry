@@ -5,6 +5,67 @@
 int inf = 1'000'000'000;
 int mateScore = 100'000;
 
+TTEntry tt[1048576];
+
+void clearTT() {
+    for (int i = 0; i < 1048576; i++) {
+        tt[i].key = 0;
+        tt[i].bestMove = Move::NO_MOVE;
+    }
+}
+
+int scoreToTT(int score, int ply) {
+    if (score > 99000 && score <= 100000)
+        return score + ply;
+
+    if (score < -99000 && score >= -100000)
+        return score - ply;
+
+    return score;
+}
+
+int scoreFromTT(int score, int ply) {
+    if (score > 99000 && score <= 100000)
+        return score - ply;
+
+    if (score < -99000 && score >= -100000)
+        return score + ply;
+
+    return score;
+}
+
+void storeTT(const Move& move, std::uint64_t key, int depth, int score, int flag, int ply) {
+    int i = key & (1048576 - 1);
+    if (move != Move::NO_MOVE) {
+        tt[i].key = key;
+        tt[i].depth = depth;
+        tt[i].flag = flag;
+        tt[i].bestMove = move;
+        tt[i].score = scoreToTT(score, ply);
+    }
+}
+
+int probeTT(int index, std::uint64_t key, int depth, int alpha, int beta, int ply) {
+    if (tt[index].depth >= depth) {
+        int score = scoreFromTT(tt[index].score, ply);
+
+        if (tt[index].flag == ttExact) {
+            return score;
+        }
+
+        if (tt[index].flag == ttAlpha && score <= alpha) {
+            return score;
+        }
+
+        if (tt[index].flag == ttBeta && score >= beta) {
+            return score;
+        }
+
+    }
+
+    return -inf;
+}
+
 std::array<std::array<Move, 256>, 256> pvTable;
 std::array<int, 256> pvLength;
 
@@ -104,6 +165,9 @@ int negamax(Board& board, int depth, int alpha, int beta, int ply, searchInfo& i
     info.nodes++;
     info.selDepth = std::max(info.selDepth, ply);
 
+    std::uint64_t ttKey = board.hash();
+    int ttIndex = ttKey & (1048576 - 1);
+
     if ((info.nodes & 2047) == 0 && timeUp(info)) {
         info.stop = true;
     }
@@ -130,6 +194,18 @@ int negamax(Board& board, int depth, int alpha, int beta, int ply, searchInfo& i
 
     if (alpha >= beta) {
         return alpha;
+    }
+
+    int originalAlpha = alpha;
+
+    if (ttKey == tt[ttIndex].key) {
+        int ttScore = probeTT(ttIndex, ttKey, depth, alpha, beta, ply);
+        if (ttScore != -inf) {
+            pvTable[ply][ply] = tt[ttIndex].bestMove;
+            pvLength[ply] = ply + 1;
+
+            return ttScore;
+        }
     }
 
     if (depth == 0) {
@@ -183,8 +259,15 @@ int negamax(Board& board, int depth, int alpha, int beta, int ply, searchInfo& i
         }
 
         if (alpha >= beta) {
+            storeTT(move, ttKey, depth, bestScore, ttBeta, ply);
             return bestScore;
         }
+    }
+
+    if (alpha != originalAlpha) {
+        storeTT(pvTable[ply][ply], ttKey, depth, bestScore, ttExact, ply);
+    } else {
+        storeTT(pvTable[ply][ply], ttKey, depth, bestScore, ttAlpha, ply);
     }
 
     return bestScore;

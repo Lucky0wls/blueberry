@@ -1,5 +1,3 @@
-#include "chess.hpp"
-
-using namespace chess;
+#include "search.hpp"
 
 void pickNextMove(const Board& board, Movelist& moves, int start, const Move& hint);
