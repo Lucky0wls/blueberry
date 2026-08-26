@@ -25,11 +25,15 @@ struct TTEntry {
     int flag = ttNone;
 };
 
-extern TTEntry tt[1048576];
+extern std::array<TTEntry, 1048576> tt;
+
+extern std::array<Move, 256> killer1;
+extern std::array<Move, 256> killer2;
 
 extern std::array<std::array<Move, 256>, 256> pvTable;
 extern std::array<int, 256> pvLength;
 
 void clearTT();
+void clearKillers();
 
 int negamax(Board& board, int depth, int alpha, int beta, int ply, searchInfo& info, const Move& hint);

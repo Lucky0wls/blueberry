@@ -5,12 +5,25 @@
 int inf = 1'000'000'000;
 int mateScore = 100'000;
 
-TTEntry tt[1048576];
+std::array<TTEntry, 1048576> tt{};
+
+std::array<Move, 256> killer1{};
+std::array<Move, 256> killer2{};
+
+std::array<std::array<Move, 256>, 256> pvTable{};
+std::array<int, 256> pvLength{};
 
 void clearTT() {
     for (int i = 0; i < 1048576; i++) {
         tt[i].key = 0;
         tt[i].bestMove = Move::NO_MOVE;
+    }
+}
+
+void clearKillers() {
+    for (int i = 0; i < 256; i++) {
+        killer1[i] = Move::NO_MOVE;
+        killer2[i] = Move::NO_MOVE;
     }
 }
 
@@ -65,9 +78,6 @@ int probeTT(int index, std::uint64_t key, int depth, int alpha, int beta, int pl
 
     return -inf;
 }
-
-std::array<std::array<Move, 256>, 256> pvTable;
-std::array<int, 256> pvLength;
 
 bool timeUp(const searchInfo& info) {
     return elapsedTime(info.start) >= info.timeLimit;
@@ -131,7 +141,7 @@ int qsearch(Board& board, int ply, int alpha, int beta, searchInfo& info) {
             return 0;
         }
 
-        pickNextMove(board, moves, i, Move::NO_MOVE);
+        pickNextMove(board, moves, i, Move::NO_MOVE, ply);
 
         const Move& move = moves[i];
 
@@ -228,7 +238,7 @@ int negamax(Board& board, int depth, int alpha, int beta, int ply, searchInfo& i
             return 0;
         }
 
-        pickNextMove(board, moves, i, hint);
+        pickNextMove(board, moves, i, hint, ply);
 
         const Move& move = moves[i];
         
@@ -259,6 +269,11 @@ int negamax(Board& board, int depth, int alpha, int beta, int ply, searchInfo& i
         }
 
         if (alpha >= beta) {
+            if (!board.isCapture(move) && killer1[ply] != move) {
+                killer2[ply] = killer1[ply];
+                killer1[ply] = move;
+            }
+
             storeTT(move, ttKey, depth, bestScore, ttBeta, ply);
             return bestScore;
         }
