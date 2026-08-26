@@ -251,10 +251,21 @@ int negamax(Board& board, int depth, int alpha, int beta, int ply, searchInfo& i
         pickNextMove(board, moves, i, hint, ply);
 
         const Move& move = moves[i];
+
+        bool lmrPossible = (!board.isCapture(move) && extension == 0 && depth >= 4 && i >= 5);
         
         board.makeMove(move);
 
-        int score = -negamax(board, depth - 1 + extension, -beta, -alpha, ply + 1, info, Move::NO_MOVE);
+        int score;
+
+        if (lmrPossible) {
+            score = -negamax(board, depth - 1 - 2, -beta, -alpha, ply + 1, info, Move::NO_MOVE);
+            if (!info.stop && score > alpha) {
+                score = -negamax(board, depth - 1, -beta, -alpha, ply + 1, info, Move::NO_MOVE);
+            }
+        } else {
+            score = -negamax(board, depth - 1 + extension, -beta, -alpha, ply + 1, info, Move::NO_MOVE);
+        }
 
         board.unmakeMove(move);
 
