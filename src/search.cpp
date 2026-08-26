@@ -186,6 +186,10 @@ int negamax(Board& board, int depth, int alpha, int beta, int ply, searchInfo& i
         return 0;
     }
 
+    if (board.isInsufficientMaterial()) {
+        return 0;
+    }
+
     if (ply > 0) {
         if (board.isHalfMoveDraw()) {
             return board.getHalfMoveDrawType().first == GameResultReason::CHECKMATE ? -mateScore + ply : 0;

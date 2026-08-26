@@ -76,7 +76,7 @@ void bench(Board& board) {
         .nodes = 0
     };
 
-    int score = iterativeDeepening(board, 8, info);
+    int score = iterativeDeepening(board, 10, info);
 
     std::uint64_t time = elapsedTime(info.start);
     std::uint64_t nps = calculateNps(info.nodes, time);        
