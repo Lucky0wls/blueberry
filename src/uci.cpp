@@ -22,7 +22,7 @@ int iterativeDeepening(Board& board, int maxDepth, searchInfo& info) {
             hint = bestMove;
         }
 
-        int score = negamax(board, depth, -1'000'000'000, 1'000'000'000, 0, info, hint);
+        int score = negamax(board, depth, -1'000'000'000, 1'000'000'000, 0, info, hint, true);
 
         if (info.stop) {
             break;

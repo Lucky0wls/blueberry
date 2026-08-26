@@ -36,4 +36,4 @@ extern std::array<int, 256> pvLength;
 void clearTT();
 void clearKillers();
 
-int negamax(Board& board, int depth, int alpha, int beta, int ply, searchInfo& info, const Move& hint);
+int negamax(Board& board, int depth, int alpha, int beta, int ply, searchInfo& info, const Move& hint, bool allowNullMove);

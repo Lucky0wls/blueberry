@@ -171,7 +171,7 @@ int qsearch(Board& board, int ply, int alpha, int beta, searchInfo& info) {
     return alpha;
 }
 
-int negamax(Board& board, int depth, int alpha, int beta, int ply, searchInfo& info, const Move& hint) {
+int negamax(Board& board, int depth, int alpha, int beta, int ply, searchInfo& info, const Move& hint, bool allowNullMove) {
     int bestScore = -inf;
     
     pvLength[ply] = ply;
@@ -234,14 +234,28 @@ int negamax(Board& board, int depth, int alpha, int beta, int ply, searchInfo& i
         return evaluate(board);
     }
 
+    int extension = board.inCheck() ? 1 : 0;
+
+    bool canNullMove = ply > 0 && extension == 0 && depth >= 4 && std::abs(beta) < 90000 && board.hasNonPawnMaterial(board.sideToMove()) && allowNullMove;
+
+    if (canNullMove) {
+        board.makeNullMove();
+
+        int score = -negamax(board, depth - 1 - 2, -beta, -beta + 1, ply + 1, info, Move::NO_MOVE, false);
+
+        board.unmakeNullMove();
+
+        if (!info.stop && score >= beta) {
+            return score;
+        }
+    }
+
     Movelist moves;
     movegen::legalmoves(moves, board);
 
     if (moves.empty()) {
         return board.inCheck() ? -mateScore + ply : 0;
     }
-
-    int extension = board.inCheck() ? 1 : 0;
 
     for (int i = 0; i < moves.size(); i++) {
         if (info.stop) {
@@ -259,12 +273,12 @@ int negamax(Board& board, int depth, int alpha, int beta, int ply, searchInfo& i
         int score;
 
         if (lmrPossible) {
-            score = -negamax(board, depth - 1 - 2, -beta, -alpha, ply + 1, info, Move::NO_MOVE);
+            score = -negamax(board, depth - 1 - 2, -beta, -alpha, ply + 1, info, Move::NO_MOVE, true);
             if (!info.stop && score > alpha) {
-                score = -negamax(board, depth - 1, -beta, -alpha, ply + 1, info, Move::NO_MOVE);
+                score = -negamax(board, depth - 1, -beta, -alpha, ply + 1, info, Move::NO_MOVE, true);
             }
         } else {
-            score = -negamax(board, depth - 1 + extension, -beta, -alpha, ply + 1, info, Move::NO_MOVE);
+            score = -negamax(board, depth - 1 + extension, -beta, -alpha, ply + 1, info, Move::NO_MOVE, true);
         }
 
         board.unmakeMove(move);
