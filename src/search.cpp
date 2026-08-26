@@ -95,6 +95,10 @@ int qsearch(Board& board, int ply, int alpha, int beta, searchInfo& info) {
         return 0;
     }
 
+    if (board.isInsufficientMaterial()) {
+        return 0;
+    }
+
     if (ply > 0) {
         if (board.isHalfMoveDraw()) {
             return board.getHalfMoveDrawType().first == GameResultReason::CHECKMATE ? -mateScore + ply : 0;
