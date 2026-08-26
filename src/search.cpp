@@ -241,6 +241,8 @@ int negamax(Board& board, int depth, int alpha, int beta, int ply, searchInfo& i
         return board.inCheck() ? -mateScore + ply : 0;
     }
 
+    int extension = board.inCheck() ? 1 : 0;
+
     for (int i = 0; i < moves.size(); i++) {
         if (info.stop) {
             return 0;
@@ -252,7 +254,7 @@ int negamax(Board& board, int depth, int alpha, int beta, int ply, searchInfo& i
         
         board.makeMove(move);
 
-        int score = -negamax(board, depth - 1, -beta, -alpha, ply + 1, info, Move::NO_MOVE);
+        int score = -negamax(board, depth - 1 + extension, -beta, -alpha, ply + 1, info, Move::NO_MOVE);
 
         board.unmakeMove(move);
 
