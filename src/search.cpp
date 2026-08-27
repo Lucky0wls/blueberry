@@ -272,13 +272,18 @@ int negamax(Board& board, int depth, int alpha, int beta, int ply, searchInfo& i
 
         int score;
 
-        if (lmrPossible) {
-            score = -negamax(board, depth - 1 - 2, -beta, -alpha, ply + 1, info, Move::NO_MOVE, true);
+        if (i == 0) {
+            score = -negamax(board, depth - 1 + extension, -beta, -alpha, ply + 1, info, Move::NO_MOVE, true);
+        } else if (lmrPossible) {
+            score = -negamax(board, depth - 1 - 2, -alpha - 1, -alpha, ply + 1, info, Move::NO_MOVE, true);
             if (!info.stop && score > alpha) {
                 score = -negamax(board, depth - 1, -beta, -alpha, ply + 1, info, Move::NO_MOVE, true);
             }
         } else {
-            score = -negamax(board, depth - 1 + extension, -beta, -alpha, ply + 1, info, Move::NO_MOVE, true);
+            score = -negamax(board, depth - 1 + extension, -alpha - 1, -alpha, ply + 1, info, Move::NO_MOVE, true);
+            if (!info.stop && score > alpha && score < beta) {
+                score = -negamax(board, depth - 1 + extension, -beta, -alpha, ply + 1, info, Move::NO_MOVE, true);
+            }
         }
 
         board.unmakeMove(move);
