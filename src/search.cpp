@@ -250,6 +250,15 @@ int negamax(Board& board, int depth, int alpha, int beta, int ply, searchInfo& i
         }
     }
 
+    bool pvNode = beta - alpha > 1;
+
+    if (!pvNode && extension == 0 && depth <= 4 && std::abs(beta) < 90000) {
+        int eval = evaluate(board);
+        if (eval - (depth * 100) >= beta) {
+            return eval;
+        }
+    }
+
     Movelist moves;
     movegen::legalmoves(moves, board);
 
