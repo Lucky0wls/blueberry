@@ -8,6 +8,8 @@
 #define GIT_DATE "01011970"
 #endif
 
+bool frc = false;
+
 Move bestMove = Move::NO_MOVE;
 
 std::string startpos = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
@@ -47,13 +49,13 @@ int iterativeDeepening(Board& board, int maxDepth, searchInfo& info) {
             if (info.selDepth == 0) info.selDepth = depth;
             std::cout << "info depth " << depth << " seldepth " << info.selDepth << " nodes " << info.nodes << " nps " << nps << " time " << time << " score mate " << mateScore << " pv ";
             for (int i = 0; i < pvLength[0]; i++) {
-                std::cout << uci::moveToUci(pvTable[0][i]) << " ";
+                std::cout << uci::moveToUci(pvTable[0][i], frc) << " ";
             }
         } else {
             if (info.selDepth == 0) info.selDepth = depth;
             std::cout << "info depth " << depth << " seldepth " << info.selDepth << " nodes " << info.nodes << " nps " << nps << " time " << time << " score cp " << bestScore << " pv ";
             for (int i = 0; i < pvLength[0]; i++) {
-                std::cout << uci::moveToUci(pvTable[0][i]) << " ";
+                std::cout << uci::moveToUci(pvTable[0][i], frc) << " ";
             }
         }
 
@@ -100,6 +102,7 @@ void uciLoop(Board& board) {
             std::cout << "id author Lucky0wls\n";
             std::cout << "option name Threads type spin default 1 min 1 max 1\n";
             std::cout << "option name Hash type spin default 1 min 1 max 1\n";
+            std::cout << "option name UCI_Chess960 type check default false\n";
             std::cout << "uciok\n";
         } else if (cmd == "isready") {
             std::cout << "readyok\n";
@@ -180,9 +183,26 @@ void uciLoop(Board& board) {
 
             int score = iterativeDeepening(board, depth, info);
 
-            std::cout << "bestmove " << uci::moveToUci(bestMove) << "\n";
+            std::cout << "bestmove " << uci::moveToUci(bestMove, frc) << "\n";
         } else if (cmd == "quit") {
             return;
+        } else if (cmd == "setoption") {
+            std::string a;
+            std::string option;
+            ss >> a >> option;
+
+            if (option == "UCI_Chess960") {
+                std::string value;
+                ss >> a >> value;
+
+                if (value == "true") {
+                    frc = true;
+                    board.set960(true);
+                } else if (value == "false") {
+                    frc = false;
+                    board.set960(false);
+                }
+            }
         }
     }
 }

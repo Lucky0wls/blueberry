@@ -24,15 +24,15 @@ int pieceValue(PieceType piece) {
 }
 
 int mvvLva(const Board& board, const Move& move) {
+    if (!board.isCapture(move)) {
+        return 0;
+    }
+
     Square from = move.from();
     Square to = move.to();
 
     Piece attacker = board.at(from);
     Piece victim = board.at(to);
-
-    if (victim == Piece::NONE) {
-        return 0;
-    }
 
     int victim_value = pieceValue(victim.type());
     int attacker_value = pieceValue(attacker.type());

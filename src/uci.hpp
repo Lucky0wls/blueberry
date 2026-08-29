@@ -5,6 +5,8 @@
 
 extern std::string startpos;
 
+extern bool frc;
+
 void bench(Board& board);
 
 void uciLoop(Board& board);
