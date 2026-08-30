@@ -9,6 +9,9 @@ std::array<TTEntry, 1048576> tt{};
 std::array<Move, 256> killer1{};
 std::array<Move, 256> killer2{};
 
+std::array<std::array<int, 64>, 64> history{};
+std::array<std::array<int, 64>, 64> butterfly{};
+
 std::array<std::array<Move, 256>, 256> pvTable{};
 std::array<int, 256> pvLength{};
 
@@ -23,6 +26,15 @@ void clearKillers() {
     for (int i = 0; i < 256; i++) {
         killer1[i] = Move::NO_MOVE;
         killer2[i] = Move::NO_MOVE;
+    }
+}
+
+void clearHistory() {
+    for (int i = 0; i < 64; i++) {
+        for (int x = 0; x < 64; x++) {
+            history[i][x] = 0;
+            butterfly[i][x] = 0;
+        }
     }
 }
 
@@ -106,52 +118,42 @@ int pieceValue(PieceType piece) {
 }
 
 int mvvLva(const Board& board, const Move& move) {
-    if (!board.isCapture(move)) {
-        return 0;
-    }
-
     Square from = move.from();
     Square to = move.to();
 
     Piece attacker = board.at(from);
     Piece victim = board.at(to);
 
-    int victim_value = pieceValue(victim.type());
-    int attacker_value = pieceValue(attacker.type());
+    int victimValue = move.typeOf() == Move::ENPASSANT ? 100 : pieceValue(victim.type());
+    int attackerValue = pieceValue(attacker.type());
 
-    return 900'000 + victim_value * 10 - attacker_value;
-}
-
-int moveScore(const Board& board, const Move& hint, const Move& move, int ply) {
-    std::uint64_t ttKey = board.hash();
-    int ttIndex = ttKey & (1048576 - 1);
-
-    if (tt[ttIndex].key == ttKey && tt[ttIndex].bestMove == move) {
-        return 2'000'000;
-    }
-
-    if (move == hint && hint != Move::NO_MOVE) {
-        return 1'000'000;
-    }
-
-    if (board.isCapture(move)) {
-        return mvvLva(board, move);
-    }
-
-    if (move == killer1[ply]) {
-        return 890'000;
-    }
-
-    if (move == killer2[ply]) {
-        return 880'000;
-    }
-
-    return 0;
+    return 900'000 + victimValue * 10 - attackerValue;
 }
 
 void scoreMoves(const Board& board, const Move& hint, Movelist& moves, int ply) {
+    std::uint64_t ttKey = board.hash();
+    int ttIndex = ttKey & (1048576 - 1);
+
     for (Move& move : moves) {
-        int score = moveScore(board, hint, move, ply);
+        int score = 0;
+
+        if (tt[ttIndex].key == ttKey && tt[ttIndex].bestMove == move) {
+            score = 2'000'000;
+        } else if (move == hint && hint != Move::NO_MOVE) {
+            score = 1'000'000;
+        } else if (board.isCapture(move)) {
+            score = mvvLva(board, move);
+        } else if (move == killer1[ply]) {
+            score = 890'000;
+        } else if (move == killer2[ply]) {
+            score = 880'000;
+        } else {
+            int from = move.from().index();
+            int to = move.to().index();
+
+            score = history[from][to] * 1000 / std::max(1, butterfly[from][to]);
+        }
+
         move.setScore(score);
     }
 }
@@ -350,7 +352,12 @@ int negamax(Board& board, int depth, int alpha, int beta, int ply, searchInfo& i
 
         const Move& move = moves[i];
 
-        bool lmrPossible = (!board.isCapture(move) && extension == 0 && depth >= 4 && i >= 5);
+        bool isCapture = board.isCapture(move);
+
+        int from = move.from().index();
+        int to = move.to().index();
+
+        bool lmrPossible = (!isCapture && extension == 0 && depth >= 4 && i >= 5);
         
         board.makeMove(move);
 
@@ -376,6 +383,11 @@ int negamax(Board& board, int depth, int alpha, int beta, int ply, searchInfo& i
             return 0;
         }
 
+        if (!isCapture) {
+            butterfly[from][to] += 1;
+            butterfly[from][to] = std::min(butterfly[from][to], 250'000);
+        }
+
         if (score > bestScore) {
             bestScore = score;
 
@@ -393,9 +405,14 @@ int negamax(Board& board, int depth, int alpha, int beta, int ply, searchInfo& i
         }
 
         if (alpha >= beta) {
-            if (!board.isCapture(move) && killer1[ply] != move) {
-                killer2[ply] = killer1[ply];
-                killer1[ply] = move;
+            if (!isCapture) {
+                if (killer1[ply] != move) {
+                    killer2[ply] = killer1[ply];
+                    killer1[ply] = move;
+                }
+
+                history[from][to] += depth * depth;
+                history[from][to] = std::min(history[from][to], 250'000);
             }
 
             storeTT(move, ttKey, depth, bestScore, ttBeta, ply);

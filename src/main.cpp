@@ -2,6 +2,8 @@
 
 int main(int argc, char** argv) {
     clearTT();
+    clearKillers();
+    clearHistory();
 
     Board board(startpos);
     board.set960(false);

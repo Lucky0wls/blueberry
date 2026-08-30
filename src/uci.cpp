@@ -109,6 +109,7 @@ void uciLoop(Board& board) {
         } else if (cmd == "ucinewgame") {
             clearTT();
             clearKillers();
+            clearHistory();
             board.setFen(startpos);
         } else if (cmd == "position") {
             std::string type;
