@@ -1,6 +1,5 @@
 #include "search.hpp"
 #include "evaluate.hpp"
-#include "movepicker.hpp"
 
 int inf = 1'000'000'000;
 int mateScore = 100'000;
@@ -83,6 +82,80 @@ bool timeUp(const searchInfo& info) {
     return elapsedTime(info.start) >= info.timeLimit;
 }
 
+int pieceValue(PieceType piece) {
+    if (piece == PieceType::PAWN) {
+        return 100;
+    } 
+    if (piece == PieceType::KNIGHT) {
+        return 300;
+    }
+    if (piece == PieceType::BISHOP) {
+        return 320;
+    }
+    if (piece == PieceType::ROOK) {
+        return 500;
+    }
+    if (piece == PieceType::QUEEN) {
+        return 900;
+    }
+    if (piece == PieceType::KING) {
+        return 20000;
+    }
+    
+    return 0;
+}
+
+int mvvLva(const Board& board, const Move& move) {
+    if (!board.isCapture(move)) {
+        return 0;
+    }
+
+    Square from = move.from();
+    Square to = move.to();
+
+    Piece attacker = board.at(from);
+    Piece victim = board.at(to);
+
+    int victim_value = pieceValue(victim.type());
+    int attacker_value = pieceValue(attacker.type());
+
+    return 900'000 + victim_value * 10 - attacker_value;
+}
+
+int moveScore(const Board& board, const Move& hint, const Move& move, int ply) {
+    std::uint64_t ttKey = board.hash();
+    int ttIndex = ttKey & (1048576 - 1);
+
+    if (tt[ttIndex].key == ttKey && tt[ttIndex].bestMove == move) {
+        return 2'000'000;
+    }
+
+    if (move == hint && hint != Move::NO_MOVE) {
+        return 1'000'000;
+    }
+
+    if (board.isCapture(move)) {
+        return mvvLva(board, move);
+    }
+
+    if (move == killer1[ply]) {
+        return 890'000;
+    }
+
+    if (move == killer2[ply]) {
+        return 880'000;
+    }
+
+    return 0;
+}
+
+void scoreMoves(const Board& board, const Move& hint, Movelist& moves, int ply) {
+    for (Move& move : moves) {
+        int score = moveScore(board, hint, move, ply);
+        move.setScore(score);
+    }
+}
+
 int qsearch(Board& board, int ply, int alpha, int beta, searchInfo& info) {
     info.nodes++;
     info.selDepth = std::max(info.selDepth, ply);
@@ -140,12 +213,13 @@ int qsearch(Board& board, int ply, int alpha, int beta, searchInfo& info) {
         movegen::legalmoves<movegen::MoveGenType::CAPTURE>(moves, board);
     }
 
+    scoreMoves(board, Move::NO_MOVE, moves, ply);
+    std::stable_sort(moves.begin(), moves.end(), [&](const Move& a, const Move& b) {return a.score() > b.score();});
+
     for (int i = 0; i < moves.size(); i++) {
         if (info.stop) {
             return 0;
         }
-
-        pickNextMove(board, moves, i, Move::NO_MOVE, ply);
 
         const Move& move = moves[i];
 
@@ -266,12 +340,13 @@ int negamax(Board& board, int depth, int alpha, int beta, int ply, searchInfo& i
         return board.inCheck() ? -mateScore + ply : 0;
     }
 
+    scoreMoves(board, hint, moves, ply);
+    std::stable_sort(moves.begin(), moves.end(), [&](const Move& a, const Move& b) {return a.score() > b.score();});
+
     for (int i = 0; i < moves.size(); i++) {
         if (info.stop) {
             return 0;
         }
-
-        pickNextMove(board, moves, i, hint, ply);
 
         const Move& move = moves[i];
 
