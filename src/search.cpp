@@ -158,6 +158,18 @@ void scoreMoves(const Board& board, const Move& hint, Movelist& moves, int ply) 
     }
 }
 
+void pickNextMove(Movelist& moves, int start) {
+    int bestIndex = start;
+
+    for (int i = start + 1; i < moves.size(); i++) {
+        if (moves[i].score() > moves[bestIndex].score()) {
+            bestIndex = i;
+        }
+    }
+
+    std::rotate(moves.begin() + start, moves.begin() + bestIndex, moves.begin() + bestIndex + 1);
+}
+
 int qsearch(Board& board, int ply, int alpha, int beta, searchInfo& info) {
     info.nodes++;
     info.selDepth = std::max(info.selDepth, ply);
@@ -216,12 +228,13 @@ int qsearch(Board& board, int ply, int alpha, int beta, searchInfo& info) {
     }
 
     scoreMoves(board, Move::NO_MOVE, moves, ply);
-    std::stable_sort(moves.begin(), moves.end(), [&](const Move& a, const Move& b) {return a.score() > b.score();});
 
     for (int i = 0; i < moves.size(); i++) {
         if (info.stop) {
             return 0;
         }
+
+        pickNextMove(moves, i);
 
         const Move& move = moves[i];
 
@@ -343,12 +356,13 @@ int negamax(Board& board, int depth, int alpha, int beta, int ply, searchInfo& i
     }
 
     scoreMoves(board, hint, moves, ply);
-    std::stable_sort(moves.begin(), moves.end(), [&](const Move& a, const Move& b) {return a.score() > b.score();});
 
     for (int i = 0; i < moves.size(); i++) {
         if (info.stop) {
             return 0;
         }
+
+        pickNextMove(moves, i);
 
         const Move& move = moves[i];
 
