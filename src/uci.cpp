@@ -18,6 +18,8 @@ int iterativeDeepening(Board& board, int maxDepth, searchInfo& info) {
     int bestScore = 0;
     Move hint = Move::NO_MOVE;
 
+    evalStack[0] = makeEvalState(board);
+
     for (int depth = 1; depth <= maxDepth; depth++) {
         info.selDepth = 0;
         if (depth > 1) {

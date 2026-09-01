@@ -147,7 +147,203 @@ constexpr int kingEgTable[64] = {
     -74, -35, -18, -18, -11, 15, 4, -17
 };
 
-int evaluate(const Board& board) {
+evalState evalStack[256];
+
+int phase(const PieceType& piece) {
+    if (piece == PieceType::KNIGHT || piece == PieceType::BISHOP) {
+        return 1;
+    } else if (piece == PieceType::ROOK) {
+        return 2;
+    } else if (piece == PieceType::QUEEN) {
+        return 4;
+    }
+
+    return 0;
+}
+
+int mgTableUpdate(const PieceType& piece, Color color, int sq) {
+    int index = color == Color::WHITE ? sq : reverseSq(sq);
+    int sign = color == Color::WHITE ? 1 : -1;
+
+    if (piece == PieceType::PAWN) {
+        return sign * pawnMgTable[index];
+    } else if (piece == PieceType::KNIGHT) {
+        return sign * knightMgTable[index];
+    } else if (piece == PieceType::BISHOP) {
+        return sign * bishopMgTable[index];
+    } else if (piece == PieceType::ROOK) {
+        return sign * rookMgTable[index];
+    } else if (piece == PieceType::QUEEN) {
+        return sign * queenMgTable[index];
+    } else if (piece == PieceType::KING) {
+        return sign * kingMgTable[index];
+    }
+
+    return 0;
+}
+
+int egTableUpdate(const PieceType& piece, Color color, int sq) {
+    int index = color == Color::WHITE ? sq : reverseSq(sq);
+    int sign = color == Color::WHITE ? 1 : -1;
+
+    if (piece == PieceType::PAWN) {
+        return sign * pawnEgTable[index];
+    } else if (piece == PieceType::KNIGHT) {
+        return sign * knightEgTable[index];
+    } else if (piece == PieceType::BISHOP) {
+        return sign * bishopEgTable[index];
+    } else if (piece == PieceType::ROOK) {
+        return sign * rookEgTable[index];
+    } else if (piece == PieceType::QUEEN) {
+        return sign * queenEgTable[index];
+    } else if (piece == PieceType::KING) {
+        return sign * kingEgTable[index];
+    }
+
+    return 0;
+}
+
+int mgValueUpdate(const PieceType& piece, Color color) {
+    int sign = color == Color::WHITE ? 1 : -1;
+
+    if (piece == PieceType::PAWN) {
+        return sign * pawnMgValue;
+    } else if (piece == PieceType::KNIGHT) {
+        return sign * knightMgValue;
+    } else if (piece == PieceType::BISHOP) {
+        return sign * bishopMgValue;
+    } else if (piece == PieceType::ROOK) {
+        return sign * rookMgValue;
+    } else if (piece == PieceType::QUEEN) {
+        return sign * queenMgValue;
+    }
+
+    return 0;
+}
+
+int egValueUpdate(const PieceType& piece, Color color) {
+    int sign = color == Color::WHITE ? 1 : -1;
+
+    if (piece == PieceType::PAWN) {
+        return sign * pawnEgValue;
+    } else if (piece == PieceType::KNIGHT) {
+        return sign * knightEgValue;
+    } else if (piece == PieceType::BISHOP) {
+        return sign * bishopEgValue;
+    } else if (piece == PieceType::ROOK) {
+        return sign * rookEgValue;
+    } else if (piece == PieceType::QUEEN) {
+        return sign * queenEgValue;
+    }
+
+    return 0;
+}
+
+void updateEvalState(const Board& board, const Move& move, evalState& state) {
+    if (move.typeOf() == Move::CASTLING) {
+        Color color = board.sideToMove();
+
+        Square kingFrom = move.from();
+        Square rookFrom = move.to();
+
+        bool kingSide = rookFrom.file() > kingFrom.file();
+
+        Square kingTo = Square::castling_king_square(kingSide, color);
+        Square rookTo = Square::castling_rook_square(kingSide, color);
+
+        state.mgScore -= mgTableUpdate(PieceType::KING, color, kingFrom.index());
+        state.mgScore += mgTableUpdate(PieceType::KING, color, kingTo.index());
+
+        state.egScore -= egTableUpdate(PieceType::KING, color, kingFrom.index());
+        state.egScore += egTableUpdate(PieceType::KING, color, kingTo.index());
+
+        state.mgScore -= mgTableUpdate(PieceType::ROOK, color, rookFrom.index());
+        state.mgScore += mgTableUpdate(PieceType::ROOK, color, rookTo.index());
+
+        state.egScore -= egTableUpdate(PieceType::ROOK, color, rookFrom.index());
+        state.egScore += egTableUpdate(PieceType::ROOK, color, rookTo.index());
+    } else if (board.isCapture(move)) {
+        Piece capturing = board.at(move.from());
+        Piece captured = board.at(move.to());
+
+        int from = move.from().index();
+        int to = move.to().index();
+
+        int capturedSq = to;
+
+        if (move.typeOf() == Move::ENPASSANT) {
+            if (capturing.color() == Color::WHITE) {
+                capturedSq = to - 8;
+                captured = board.at(to - 8);
+            } else {
+                capturedSq = to + 8;
+                captured = board.at(to + 8);
+            }
+        }
+        
+        if (move.typeOf() == Move::PROMOTION) {
+            state.egScore -= egTableUpdate(capturing.type(), capturing.color(), from);
+            state.egScore -= egValueUpdate(capturing.type(), capturing.color());
+            state.egScore += egTableUpdate(move.promotionType(), capturing.color(), to);
+            state.egScore += egValueUpdate(move.promotionType(), capturing.color());
+
+            state.mgScore -= mgTableUpdate(capturing.type(), capturing.color(), from);
+            state.mgScore -= mgValueUpdate(capturing.type(), capturing.color());
+            state.mgScore += mgTableUpdate(move.promotionType(), capturing.color(), to);
+            state.mgScore += mgValueUpdate(move.promotionType(), capturing.color());
+        
+            state.mgScore -= mgTableUpdate(captured.type(), captured.color(), capturedSq);
+            state.mgScore -= mgValueUpdate(captured.type(), captured.color());
+
+            state.egScore -= egTableUpdate(captured.type(), captured.color(), capturedSq);
+            state.egScore -= egValueUpdate(captured.type(), captured.color());
+
+            state.phase += phase(move.promotionType());
+            state.phase -= phase(captured.type());
+        } else {
+            state.egScore -= egTableUpdate(capturing.type(), capturing.color(), from);
+            state.egScore += egTableUpdate(capturing.type(), capturing.color(), to);
+
+            state.mgScore -= mgTableUpdate(capturing.type(), capturing.color(), from);
+            state.mgScore += mgTableUpdate(capturing.type(), capturing.color(), to);
+        
+            state.mgScore -= mgTableUpdate(captured.type(), captured.color(), capturedSq);
+            state.mgScore -= mgValueUpdate(captured.type(), captured.color());
+
+            state.egScore -= egTableUpdate(captured.type(), captured.color(), capturedSq);
+            state.egScore -= egValueUpdate(captured.type(), captured.color());
+
+            state.phase -= phase(captured.type());
+        }
+    } else {
+        Piece moving = board.at(move.from());
+
+        int from = move.from().index();
+        int to = move.to().index();
+
+        if (move.typeOf() == Move::PROMOTION) {
+            state.mgScore -= mgTableUpdate(moving.type(), moving.color(), from);
+            state.mgScore -= mgValueUpdate(moving.type(), moving.color());
+            state.mgScore += mgTableUpdate(move.promotionType(), moving.color(), to);
+            state.mgScore += mgValueUpdate(move.promotionType(), moving.color());
+
+            state.egScore -= egTableUpdate(moving.type(), moving.color(), from);
+            state.egScore -= egValueUpdate(moving.type(), moving.color());
+            state.egScore += egTableUpdate(move.promotionType(), moving.color(), to);
+            state.egScore += egValueUpdate(move.promotionType(), moving.color());
+
+            state.phase += phase(move.promotionType());
+        } else {
+            state.mgScore -= mgTableUpdate(moving.type(), moving.color(), from);
+            state.mgScore += mgTableUpdate(moving.type(), moving.color(), to);
+
+            state.egScore -= egTableUpdate(moving.type(), moving.color(), from);
+            state.egScore += egTableUpdate(moving.type(), moving.color(), to);
+        }
+    }
+}
+
+evalState makeEvalState(const Board& board) {
     int mgScore = 0;
     int egScore = 0;
 
@@ -278,16 +474,14 @@ int evaluate(const Board& board) {
     int rooks = board.pieces(PieceType::ROOK).count();
     int queens = board.pieces(PieceType::QUEEN).count();
 
-    constexpr int knight_phase = 1;
-    constexpr int bishop_phase = 1;
-    constexpr int rook_phase = 2;
-    constexpr int queen_phase = 4;
+    int phase = (1 * knights) + (1 * bishops) + (2 * rooks) + (4 * queens);
 
-    int mgPhase = (knight_phase * knights) + (bishop_phase * bishops) + (rook_phase * rooks) + (queen_phase * queens);
-    mgPhase = std::max(0, std::min(mgPhase, 24));
-    int egPhase = 24 - mgPhase;
+    return evalState{mgScore, egScore, phase};
+}
 
-    int score = ((mgScore * mgPhase) + (egScore * egPhase)) / 24;
+int evaluate(const Board& board, const evalState& state) {
+    int phase = std::max(0, std::min(state.phase, 24));
+    int score = ((state.mgScore * phase) + (state.egScore * (24 - phase))) / 24;
 
     if (board.sideToMove() == Color::WHITE) {
         return score;

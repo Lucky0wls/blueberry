@@ -1,5 +1,4 @@
 #include "search.hpp"
-#include "evaluate.hpp"
 
 int inf = 1'000'000'000;
 int mateScore = 100'000;
@@ -196,7 +195,7 @@ int qsearch(Board& board, int ply, int alpha, int beta, searchInfo& info) {
     }
 
     if (ply >= 245) {
-        return evaluate(board);
+        return evaluate(board, evalStack[ply]);
     }
 
     Movelist moves;
@@ -214,7 +213,7 @@ int qsearch(Board& board, int ply, int alpha, int beta, searchInfo& info) {
             return -mateScore + ply;
         }
     } else {
-        int standPat = evaluate(board);
+        int standPat = evaluate(board, evalStack[ply]);
 
         if (standPat >= beta) {
             return standPat;
@@ -237,6 +236,10 @@ int qsearch(Board& board, int ply, int alpha, int beta, searchInfo& info) {
         pickNextMove(moves, i);
 
         const Move& move = moves[i];
+
+        evalStack[ply + 1] = evalStack[ply];
+
+        updateEvalState(board, move, evalStack[ply + 1]);
 
         board.makeMove(move);
 
@@ -320,7 +323,7 @@ int negamax(Board& board, int depth, int alpha, int beta, int ply, searchInfo& i
     }
 
     if (ply >= 245) {
-        return evaluate(board);
+        return evaluate(board, evalStack[ply]);
     }
 
     int extension = board.inCheck() ? 1 : 0;
@@ -328,6 +331,8 @@ int negamax(Board& board, int depth, int alpha, int beta, int ply, searchInfo& i
     bool canNullMove = ply > 0 && extension == 0 && depth >= 4 && std::abs(beta) < 90000 && board.hasNonPawnMaterial(board.sideToMove()) && allowNullMove;
 
     if (canNullMove) {
+        evalStack[ply + 1] = evalStack[ply];
+
         board.makeNullMove();
 
         int score = -negamax(board, depth - 1 - 2, -beta, -beta + 1, ply + 1, info, Move::NO_MOVE, false);
@@ -342,7 +347,7 @@ int negamax(Board& board, int depth, int alpha, int beta, int ply, searchInfo& i
     bool pvNode = beta - alpha > 1;
 
     if (!pvNode && extension == 0 && depth <= 4 && std::abs(beta) < 90000) {
-        int eval = evaluate(board);
+        int eval = evaluate(board, evalStack[ply]);
         if (eval - (depth * 100) >= beta) {
             return eval;
         }
@@ -372,6 +377,10 @@ int negamax(Board& board, int depth, int alpha, int beta, int ply, searchInfo& i
         int to = move.to().index();
 
         bool lmrPossible = (!isCapture && extension == 0 && depth >= 4 && i >= 5);
+
+        evalStack[ply + 1] = evalStack[ply];
+
+        updateEvalState(board, move, evalStack[ply + 1]);
         
         board.makeMove(move);
 

@@ -4,6 +4,7 @@
 
 #include "chess.hpp"
 #include "tools.hpp"
+#include "evaluate.hpp"
 
 using namespace chess;
 
