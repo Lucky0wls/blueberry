@@ -271,6 +271,11 @@ int negamax(Board& board, int depth, int alpha, int beta, int ply, searchInfo& i
     std::uint64_t ttKey = board.hash();
     int ttIndex = ttKey & (1048576 - 1);
 
+    int searchedMoves = 0;
+
+    int eval = 0;
+    int evaluated = false;
+
     if ((info.nodes & 2047) == 0 && timeUp(info)) {
         info.stop = true;
     }
@@ -342,7 +347,11 @@ int negamax(Board& board, int depth, int alpha, int beta, int ply, searchInfo& i
     bool pvNode = beta - alpha > 1;
 
     if (!pvNode && extension == 0 && depth <= 4 && std::abs(beta) < 90000) {
-        int eval = evaluate(board);
+        if (!evaluated) {
+            eval = evaluate(board);
+            evaluated = true;
+        }
+
         if (eval - (depth * 100) >= beta) {
             return eval;
         }
@@ -366,18 +375,31 @@ int negamax(Board& board, int depth, int alpha, int beta, int ply, searchInfo& i
 
         const Move& move = moves[i];
 
-        bool isCapture = board.isCapture(move);
+        bool capture = board.isCapture(move);
+
+        if (depth <= 3 && std::abs(alpha) < 90000 && searchedMoves > 0 && !pvNode && extension == 0 && !capture && move.typeOf() != Move::PROMOTION) {
+            if (!evaluated) {
+                eval = evaluate(board);
+                evaluated = true;
+            }
+
+            if (eval + (depth * 100) <= alpha) {
+                if (board.givesCheck(move) == CheckType::NO_CHECK) {
+                    continue;
+                }
+            }
+        }
 
         int from = move.from().index();
         int to = move.to().index();
 
-        bool lmrPossible = (!isCapture && extension == 0 && depth >= 4 && i >= 5);
+        bool lmrPossible = (!capture && extension == 0 && depth >= 4 && searchedMoves >= 5);
         
         board.makeMove(move);
 
         int score;
 
-        if (i == 0) {
+        if (searchedMoves == 0) {
             score = -negamax(board, depth - 1 + extension, -beta, -alpha, ply + 1, info, Move::NO_MOVE, true);
         } else if (lmrPossible) {
             score = -negamax(board, depth - 1 - 2, -alpha - 1, -alpha, ply + 1, info, Move::NO_MOVE, true);
@@ -397,7 +419,9 @@ int negamax(Board& board, int depth, int alpha, int beta, int ply, searchInfo& i
             return 0;
         }
 
-        if (!isCapture) {
+        searchedMoves++;
+
+        if (!capture) {
             butterfly[from][to] += 1;
             butterfly[from][to] = std::min(butterfly[from][to], 250'000);
         }
@@ -419,7 +443,7 @@ int negamax(Board& board, int depth, int alpha, int beta, int ply, searchInfo& i
         }
 
         if (alpha >= beta) {
-            if (!isCapture) {
+            if (!capture) {
                 if (killer1[ply] != move) {
                     killer2[ply] = killer1[ply];
                     killer1[ply] = move;
