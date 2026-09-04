@@ -130,7 +130,56 @@ int mvvLva(const Board& board, const Move& move) {
     return 900'000 + victimValue * 10 - attackerValue;
 }
 
-void scoreMoves(const Board& board, const Move& hint, Movelist& moves, int ply) {
+Move cheapestAttacker(const Board& board, Square target) {
+    int lowest = inf;
+    Move m = Move::NO_MOVE;
+    Color stm = board.sideToMove();
+
+    Bitboard attackers = attacks::attackers(board, stm, target);
+
+    while (attackers) {
+        int sq = attackers.pop();
+
+        int val = pieceValue(board.at(sq).type());
+
+        if (val < lowest) {
+            Move candidate = Move::make<Move::NORMAL>(Square(sq), target);
+            if (!board.isLegal(candidate)) continue;
+
+            m = candidate;
+            lowest = val;
+        }
+    }
+
+    return m;
+}
+
+int staticExchangeEvaluation(Board& board, const Move& move) {
+    if (!board.isCapture(move)) return 0;
+    if (move.typeOf() == Move::ENPASSANT) return 0;
+
+    Square target = move.to();
+    PieceType victim = board.at(move.to()).type();
+
+    int value = pieceValue(victim);
+
+    board.makeMove(move);
+
+    Move reply = cheapestAttacker(board, target);
+
+    if (reply != Move::NO_MOVE) {
+        int opponentGain = staticExchangeEvaluation(board, reply);
+
+        value -= std::max(0, opponentGain);
+    }
+
+    board.unmakeMove(move);
+
+    return value;
+}
+
+
+void scoreMoves(Board& board, const Move& hint, Movelist& moves, int ply) {
     std::uint64_t ttKey = board.hash();
     int ttIndex = ttKey & (1048576 - 1);
 
@@ -142,7 +191,12 @@ void scoreMoves(const Board& board, const Move& hint, Movelist& moves, int ply) 
         } else if (move == hint && hint != Move::NO_MOVE) {
             score = 1'000'000;
         } else if (board.isCapture(move)) {
-            score = mvvLva(board, move);
+            int see = staticExchangeEvaluation(board, move);
+            if (see >= 0) {
+                score = 900'000 + see;
+            } else {
+                score = 875'000 + see;
+            }
         } else if (move == killer1[ply]) {
             score = 890'000;
         } else if (move == killer2[ply]) {
@@ -208,7 +262,9 @@ int qsearch(Board& board, int ply, int alpha, int beta, searchInfo& info) {
         return alpha;
     }
 
-    if (board.inCheck()) {
+    bool inCheck = board.inCheck();
+
+    if (inCheck) {
         movegen::legalmoves(moves, board);
         if (moves.empty()) {
             return -mateScore + ply;
@@ -237,6 +293,10 @@ int qsearch(Board& board, int ply, int alpha, int beta, searchInfo& info) {
         pickNextMove(moves, i);
 
         const Move& move = moves[i];
+
+        if (!inCheck && move.score() >= 870'000 && move.score() < 880'000) {
+            continue;
+        }
 
         board.makeMove(move);
 
