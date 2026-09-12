@@ -437,17 +437,19 @@ int negamax(Board& board, int depth, int alpha, int beta, int ply, searchInfo& i
 
         bool capture = board.isCapture(move);
 
-        if (depth <= 3 && std::abs(alpha) < 90000 && searchedMoves > 0 && !pvNode && extension == 0 && !capture && move.typeOf() != Move::PROMOTION) {
+        if (depth <= 3 && std::abs(alpha) < 90000 && searchedMoves > 0 && !pvNode && extension == 0 && !capture && move.typeOf() != Move::PROMOTION && board.givesCheck(move) == CheckType::NO_CHECK) {
             if (!evaluated) {
                 eval = evaluate(board);
                 evaluated = true;
             }
 
             if (eval + (depth * 100) <= alpha) {
-                if (board.givesCheck(move) == CheckType::NO_CHECK) {
-                    continue;
-                }
+                continue;
             }
+        }
+
+        if (!pvNode && depth <= 3 && searchedMoves >= 14 && extension == 0 && !capture && move.typeOf() != Move::PROMOTION && board.givesCheck(move) == CheckType::NO_CHECK) {
+            continue;
         }
 
         int from = move.from().index();
