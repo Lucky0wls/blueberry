@@ -388,7 +388,13 @@ int negamax(Board& board, int depth, int alpha, int beta, int ply, searchInfo& i
         return evaluate(board);
     }
 
+    if (depth >= 7 && tt[ttIndex].bestMove == Move::NO_MOVE) {
+        depth--;
+    }
+
     int extension = board.inCheck() ? 1 : 0;
+
+    bool pvNode = beta - alpha > 1;
 
     bool canNullMove = ply > 0 && extension == 0 && depth >= 4 && std::abs(beta) < 90000 && board.hasNonPawnMaterial(board.sideToMove()) && allowNullMove;
 
@@ -403,8 +409,6 @@ int negamax(Board& board, int depth, int alpha, int beta, int ply, searchInfo& i
             return score;
         }
     }
-
-    bool pvNode = beta - alpha > 1;
 
     if (!pvNode && extension == 0 && depth <= 4 && std::abs(beta) < 90000) {
         if (!evaluated) {
