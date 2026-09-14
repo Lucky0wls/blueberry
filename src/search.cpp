@@ -388,7 +388,7 @@ int negamax(Board& board, int depth, int alpha, int beta, int ply, searchInfo& i
         return evaluate(board);
     }
 
-    if (depth >= 7 && tt[ttIndex].bestMove == Move::NO_MOVE) {
+    if (depth >= 6 && tt[ttIndex].bestMove == Move::NO_MOVE) {
         depth--;
     }
 
