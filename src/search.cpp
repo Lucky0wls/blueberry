@@ -455,7 +455,7 @@ int negamax(Board& board, int depth, int alpha, int beta, int ply, searchInfo& i
         int from = move.from().index();
         int to = move.to().index();
 
-        bool lmrPossible = (!capture && extension == 0 && depth >= 4 && searchedMoves >= 5);
+        bool lmrPossible = (!capture && extension == 0 && depth >= 3 && searchedMoves >= 3);
         
         board.makeMove(move);
 
