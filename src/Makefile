@@ -1,5 +1,5 @@
 CXX ?= g++
-CXXFLAGS ?= -O3 -march=native -std=c++17
+CXXFLAGS ?= -DNDEBUG -O3 -march=native -std=c++17
 EXE ?= blueberry
 
 ifeq ($(OS),Windows_NT)
@@ -11,7 +11,7 @@ else
 endif
 
 ifeq ($(GIT_SHA),)
-    GIT_SHA := N/A
+    GIT_SHA := nogit
 
     ifeq ($(OS),Windows_NT)
         GIT_DATE := $(shell powershell -NoProfile -Command "Get-Date -Format ddMMyyyy")

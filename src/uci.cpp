@@ -87,7 +87,7 @@ void bench(Board& board) {
 }
 
 void uciLoop(Board& board) {
-    std::cout << "Blueberry " << GIT_DATE << "-" << GIT_SHA << " by Lucky0wls\n";
+    std::cout << "Blueberry v1.0 by Lucky0wls\n";
 
     std::string input;
 
@@ -98,7 +98,7 @@ void uciLoop(Board& board) {
         ss >> cmd;
 
         if (cmd == "uci") {
-            std::cout << "id name Blueberry " << GIT_DATE << "-" << GIT_SHA << "\n";
+            std::cout << "id name Blueberry v1.0\n";
             std::cout << "id author Lucky0wls\n";
             std::cout << "option name Threads type spin default 1 min 1 max 1\n";
             std::cout << "option name Hash type spin default 1 min 1 max 1\n";
