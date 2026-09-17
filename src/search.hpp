@@ -28,6 +28,8 @@ struct TTEntry {
 extern std::array<std::array<Move, 256>, 256> pvTable;
 extern std::array<int, 256> pvLength;
 
+void calculateLmrTable();
+
 void clearTT();
 void clearKillers();
 void clearHistory();

@@ -1,6 +1,8 @@
 #include "search.hpp"
 #include "evaluate.hpp"
 
+#include <cmath>
+
 int inf = 1'000'000'000;
 int mateScore = 100'000;
 
@@ -12,8 +14,19 @@ std::array<Move, 256> killer2{};
 std::array<std::array<int, 64>, 64> history{};
 std::array<std::array<int, 64>, 64> butterfly{};
 
+std::array<std::array<int, 256>, 256> lmrTable{};
+
 std::array<std::array<Move, 256>, 256> pvTable{};
 std::array<int, 256> pvLength{};
+
+void calculateLmrTable() {
+    for (int d = 1; d < 256; d++) {
+        for (int n = 1; n < 256; n++) {
+            int r = 0.5 + std::log(d) * std::log(n) / 2;
+            lmrTable[d][n] = r;
+        }
+    }
+}
 
 void clearTT() {
     for (int i = 0; i < 1048576; i++) {
@@ -456,6 +469,7 @@ int negamax(Board& board, int depth, int alpha, int beta, int ply, searchInfo& i
         int to = move.to().index();
 
         bool lmrPossible = (!capture && extension == 0 && depth >= 4 && searchedMoves >= 5);
+        int reduction = lmrTable[depth][searchedMoves + 1];
         
         board.makeMove(move);
 
@@ -464,7 +478,7 @@ int negamax(Board& board, int depth, int alpha, int beta, int ply, searchInfo& i
         if (searchedMoves == 0) {
             score = -negamax(board, depth - 1 + extension, -beta, -alpha, ply + 1, info, Move::NO_MOVE, true);
         } else if (lmrPossible) {
-            score = -negamax(board, depth - 1 - 2, -alpha - 1, -alpha, ply + 1, info, Move::NO_MOVE, true);
+            score = -negamax(board, depth - 1 - reduction, -alpha - 1, -alpha, ply + 1, info, Move::NO_MOVE, true);
             if (!info.stop && score > alpha) {
                 score = -negamax(board, depth - 1, -beta, -alpha, ply + 1, info, Move::NO_MOVE, true);
             }
