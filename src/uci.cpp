@@ -10,22 +10,45 @@
 
 bool frc = false;
 
-Move bestMove = Move::NO_MOVE;
-
 std::string startpos = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+
+Move bestMove = Move::NO_MOVE;
 
 int iterativeDeepening(Board& board, int maxDepth, searchInfo& info) {
     int bestScore = 0;
     Move hint = Move::NO_MOVE;
 
+    int alpha = -1'000'000'000;
+    int beta = 1'000'000'000;
+
+    int score;
+
     for (int depth = 1; depth <= maxDepth; depth++) {
         info.selDepth = 0;
+        
         if (depth > 1) {
             hint = bestMove;
+
+            alpha = bestScore - 50;
+            beta = bestScore + 50;
         }
+        
+        while (true) {
+            score = negamax(board, depth, alpha, beta, 0, info, hint, true);
 
-        int score = negamax(board, depth, -1'000'000'000, 1'000'000'000, 0, info, hint, true);
+            if (info.stop) {
+                break;
+            }
 
+            if (score <= alpha || score >= beta) {
+                alpha = score - 50;
+                beta = score + 50;
+                continue;
+            }
+
+            break;
+        }
+        
         if (info.stop) {
             break;
         }
