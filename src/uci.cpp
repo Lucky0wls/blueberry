@@ -40,9 +40,25 @@ int iterativeDeepening(Board& board, int maxDepth, searchInfo& info) {
                 break;
             }
 
-            if (score <= alpha || score >= beta) {
-                alpha = score - 50;
-                beta = score + 50;
+            if (score <= alpha) {
+                if (std::abs(score) >= 99000) {
+                    alpha = -1'000'000'000;
+                    beta = 1'000'000'000;
+                    continue;
+                }
+
+                alpha -= 100;
+                continue;
+            }
+
+            if (score >= beta) {
+                if (std::abs(score) >= 99000) {
+                    alpha = -1'000'000'000;
+                    beta = 1'000'000'000;
+                    continue;
+                }
+
+                beta += 100;
                 continue;
             }
 
