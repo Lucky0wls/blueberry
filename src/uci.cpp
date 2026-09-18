@@ -10,22 +10,61 @@
 
 bool frc = false;
 
-Move bestMove = Move::NO_MOVE;
-
 std::string startpos = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+
+Move bestMove = Move::NO_MOVE;
 
 int iterativeDeepening(Board& board, int maxDepth, searchInfo& info) {
     int bestScore = 0;
     Move hint = Move::NO_MOVE;
 
+    int alpha = -1'000'000'000;
+    int beta = 1'000'000'000;
+
+    int score;
+
     for (int depth = 1; depth <= maxDepth; depth++) {
         info.selDepth = 0;
+        
         if (depth > 1) {
             hint = bestMove;
+
+            alpha = bestScore - 50;
+            beta = bestScore + 50;
         }
+        
+        while (true) {
+            score = negamax(board, depth, alpha, beta, 0, info, hint, true);
 
-        int score = negamax(board, depth, -1'000'000'000, 1'000'000'000, 0, info, hint, true);
+            if (info.stop) {
+                break;
+            }
 
+            if (score <= alpha) {
+                if (std::abs(score) >= 99000) {
+                    alpha = -1'000'000'000;
+                    beta = 1'000'000'000;
+                    continue;
+                }
+
+                alpha -= 100;
+                continue;
+            }
+
+            if (score >= beta) {
+                if (std::abs(score) >= 99000) {
+                    alpha = -1'000'000'000;
+                    beta = 1'000'000'000;
+                    continue;
+                }
+
+                beta += 100;
+                continue;
+            }
+
+            break;
+        }
+        
         if (info.stop) {
             break;
         }
@@ -70,7 +109,7 @@ int iterativeDeepening(Board& board, int maxDepth, searchInfo& info) {
 }
 
 void uciLoop(Board& board) {
-    std::cout << "Blueberry v1.0.1 by Lucky0wls\n";
+    std::cout << "Blueberry " << GIT_DATE << "-" << GIT_SHA << " by Lucky0wls\n";
 
     std::string input;
 
@@ -81,7 +120,7 @@ void uciLoop(Board& board) {
         ss >> cmd;
 
         if (cmd == "uci") {
-            std::cout << "id name Blueberry v1.0.1\n";
+            std::cout << "id name Blueberry " << GIT_DATE << "-" << GIT_SHA << "\n";
             std::cout << "id author Lucky0wls\n";
             std::cout << "option name Threads type spin default 1 min 1 max 1\n";
             std::cout << "option name Hash type spin default 1 min 1 max 1\n";
