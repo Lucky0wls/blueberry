@@ -1,4 +1,5 @@
 #include "uci.hpp"
+#include "bench.hpp"
 
 int main(int argc, char** argv) {
     clearTT();
@@ -10,7 +11,7 @@ int main(int argc, char** argv) {
     frc = false;
 
     if (argc >= 2 && std::string(argv[1]) == "bench") {
-        bench(board);
+        bench();
         return 0;
     }
 

@@ -7,6 +7,6 @@ extern std::string startpos;
 
 extern bool frc;
 
-void bench(Board& board);
+int iterativeDeepening(Board& board, int maxDepth, searchInfo& info);
 
 void uciLoop(Board& board);

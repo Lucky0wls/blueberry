@@ -69,25 +69,8 @@ int iterativeDeepening(Board& board, int maxDepth, searchInfo& info) {
     return bestScore;
 }
 
-void bench(Board& board) {
-    searchInfo info {
-        .start = std::chrono::steady_clock::now(),
-        .timeLimit = 99999999999,
-        .stop = false,
-        .selDepth = 0,
-        .nodes = 0
-    };
-
-    int score = iterativeDeepening(board, 12, info);
-
-    std::uint64_t time = elapsedTime(info.start);
-    std::uint64_t nps = calculateNps(info.nodes, time);        
-
-    std::cout << info.nodes << " nodes " << nps << " nps\n";
-}
-
 void uciLoop(Board& board) {
-    std::cout << "Blueberry v1.0 by Lucky0wls\n";
+    std::cout << "Blueberry v1.0.1 by Lucky0wls\n";
 
     std::string input;
 
@@ -98,7 +81,7 @@ void uciLoop(Board& board) {
         ss >> cmd;
 
         if (cmd == "uci") {
-            std::cout << "id name Blueberry v1.0\n";
+            std::cout << "id name Blueberry v1.0.1\n";
             std::cout << "id author Lucky0wls\n";
             std::cout << "option name Threads type spin default 1 min 1 max 1\n";
             std::cout << "option name Hash type spin default 1 min 1 max 1\n";
