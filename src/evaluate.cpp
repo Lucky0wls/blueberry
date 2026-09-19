@@ -4,6 +4,9 @@ int reverseSq(const int sq) {
     return sq ^ 56;
 }
 
+constexpr int bishopPairMgBonus = 25;
+constexpr int bishopPairEgBonus = 35;
+
 constexpr int pawnMgValue = 82;
 constexpr int pawnEgValue = 94;
 constexpr int knightMgValue = 337;
@@ -188,6 +191,16 @@ int evaluate(const Board& board) {
     egScore += bishopEgValue * (wB - bB);
     egScore += rookEgValue * (wR - bR);
     egScore += queenEgValue * (wQ - bQ);
+
+    if (wB >= 2) {
+        mgScore += bishopPairMgBonus;
+        egScore += bishopPairEgBonus;
+    }
+
+    if (bB >= 2) {
+        mgScore -= bishopPairMgBonus;
+        egScore -= bishopPairEgBonus;
+    }
 
     while (wP_bb) {
         int sq = wP_bb.pop();
