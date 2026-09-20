@@ -276,16 +276,10 @@ int staticExchangeEvaluation(const Board& board, const Move& move) {
         attacked = prt;
     }
 
-    // debug
-    //std::cout << "gain[0]: " << gain[0] << "\n";
-
     while (true) {
         int lvaIndex = leastValuableAttacker(board, occ, target, stm);
 
         if (lvaIndex >= 64) {
-            // debug
-            //std::cout << "no attackers\n";
-
             break;
         }
 
@@ -317,28 +311,17 @@ int staticExchangeEvaluation(const Board& board, const Move& move) {
             }
         }
 
-        
-
         gain[depth] = pieceValue(attacked) - gain[depth - 1];
 
         attacked = pt;
-
-        // debug
-        //std::cout << "lvaIndex: " << lvaIndex << " / as square: " << Square(lvaIndex) << " / gain[" << depth << "]: " << gain[depth] << "\n";
 
         occ.clear(lvaIndex);
         stm = ~stm;
     }
 
     for (int d = depth; d >= 1; d--) {
-        //std::cout << "original gain[" << d - 1 << "]: " << gain[d - 1];
-
         gain[d - 1] = std::min(gain[d - 1], -gain[d]);
-
-        //std::cout << " / new: " << gain[d - 1] << "\n"; 
     }
-
-    //std::cout << "final result: " << gain[0] << "\n";
 
     return gain[0];
 }
