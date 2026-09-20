@@ -7,6 +7,9 @@
 
 using namespace chess;
 
+int seeNew(const Board& board, const Move& move);
+int staticExchangeEvaluation(Board& board, const Move& move);
+
 enum { ttNone, ttAlpha, ttBeta, ttExact };
 
 struct searchInfo {
