@@ -130,56 +130,221 @@ int mvvLva(const Board& board, const Move& move) {
     return 900'000 + victimValue * 10 - attackerValue;
 }
 
-Move cheapestAttacker(const Board& board, Square target) {
-    int lowest = inf;
-    Move m = Move::NO_MOVE;
-    Color stm = board.sideToMove();
+Bitboard attackersTo(const Board& board, Bitboard occ, Square target, Color stm) {
+    Bitboard attackers = 0ULL;
 
-    Bitboard attackers = attacks::attackers(board, stm, target);
+    Bitboard pawns = board.pieces(PieceType::PAWN, stm) & occ;
+    Bitboard knights = board.pieces(PieceType::KNIGHT, stm) & occ;
+    Bitboard queens = board.pieces(PieceType::QUEEN, stm) & occ;
+    Bitboard bishopsQueens = (board.pieces(PieceType::BISHOP, stm) | queens) & occ;
+    Bitboard rooksQueens = (board.pieces(PieceType::ROOK, stm) | queens) & occ;
+    Bitboard king = board.pieces(PieceType::KING, stm) & occ;
 
-    while (attackers) {
-        int sq = attackers.pop();
+    attackers |= attacks::pawn(~stm, target) & pawns;
 
-        int val = pieceValue(board.at(sq).type());
+    attackers |= attacks::knight(target) & knights;
 
-        if (val < lowest) {
-            Move candidate = Move::make<Move::NORMAL>(Square(sq), target);
-            if (!board.isLegal(candidate)) continue;
+    attackers |= attacks::bishop(target, occ) & bishopsQueens;
 
-            m = candidate;
-            lowest = val;
+    attackers |= attacks::rook(target, occ) & rooksQueens;
+
+    attackers |= attacks::king(target) & king;
+
+    return attackers;
+}
+
+int leastValuableAttacker(const Board& board, Bitboard occ, Square target, Color stm) {
+    Bitboard attackers = attackersTo(board, occ, target, stm);
+
+    Square kingSq = board.kingSq(stm);
+
+    Bitboard pawns = (board.pieces(PieceType::PAWN, stm) & occ) & attackers;
+
+    while (pawns) {
+        int sq = pawns.pop();
+
+        Bitboard tempOcc = occ;
+        tempOcc.clear(sq);
+        Bitboard a = attackersTo(board, tempOcc, kingSq, ~stm);
+        a.clear(target.index());
+        if (!a) {
+            return sq;
+        }
+    }
+    
+    Bitboard knights = (board.pieces(PieceType::KNIGHT, stm) & occ) & attackers;
+
+    while (knights) {
+        int sq = knights.pop();
+
+        Bitboard tempOcc = occ;
+        tempOcc.clear(sq);
+        Bitboard a = attackersTo(board, tempOcc, kingSq, ~stm);
+        a.clear(target.index());
+        if (!a) {
+            return sq;
         }
     }
 
-    return m;
-}
+    Bitboard bishops = (board.pieces(PieceType::BISHOP, stm) & occ) & attackers;
 
-int staticExchangeEvaluation(Board& board, const Move& move) {
-    if (!board.isCapture(move)) return 0;
-    if (move.typeOf() == Move::ENPASSANT) return 0;
+    while (bishops) {
+        int sq = bishops.pop();
 
-    Square target = move.to();
-    PieceType victim = board.at(move.to()).type();
-
-    int value = pieceValue(victim);
-
-    board.makeMove(move);
-
-    Move reply = cheapestAttacker(board, target);
-
-    if (reply != Move::NO_MOVE) {
-        int opponentGain = staticExchangeEvaluation(board, reply);
-
-        value -= std::max(0, opponentGain);
+        Bitboard tempOcc = occ;
+        tempOcc.clear(sq);
+        Bitboard a = attackersTo(board, tempOcc, kingSq, ~stm);
+        a.clear(target.index());
+        if (!a) {
+            return sq;
+        }
     }
 
-    board.unmakeMove(move);
+    Bitboard rooks = (board.pieces(PieceType::ROOK, stm) & occ) & attackers;
 
-    return value;
+    while (rooks) {
+        int sq = rooks.pop();
+
+        Bitboard tempOcc = occ;
+        tempOcc.clear(sq);
+        Bitboard a = attackersTo(board, tempOcc, kingSq, ~stm);
+        a.clear(target.index());
+        if (!a) {
+            return sq;
+        }
+    }
+
+    Bitboard queens = (board.pieces(PieceType::QUEEN, stm) & occ) & attackers;
+
+    while (queens) {
+        int sq = queens.pop();
+
+        Bitboard tempOcc = occ;
+        tempOcc.clear(sq);
+        Bitboard a = attackersTo(board, tempOcc, kingSq, ~stm);
+        a.clear(target.index());
+        if (!a) {
+            return sq;
+        }
+    }
+
+    Bitboard king = (board.pieces(PieceType::KING, stm) & occ) & attackers;
+    
+    if (king) {
+        Bitboard tempOcc = occ;
+        tempOcc.clear(kingSq.index());
+
+        if (!attackersTo(board, tempOcc, target, ~stm)) {
+            return king.lsb();
+        }
+    }
+
+    return 64; 
+}
+
+int staticExchangeEvaluation(const Board& board, const Move& move) {
+    if (!board.isCapture(move)) {
+        return 0;
+    }
+
+    if (move.typeOf() == Move::ENPASSANT) {
+        return 0;
+    }
+
+    Bitboard occ = board.occ();
+    Color stm = board.sideToMove();
+
+    std::array<int, 256> gain{};
+
+    int depth = 0;
+
+    Square target = move.to();
+
+    PieceType attacked = PieceType::NONE;
+
+    occ.clear(move.from().index());
+    stm = ~stm;
+
+    
+    attacked = board.at(move.from()).type();
+
+    gain[0] = pieceValue(board.at(move.to()).type());
+
+    if (move.typeOf() == Move::PROMOTION) {
+        PieceType prt = move.promotionType();
+        gain[0] += pieceValue(prt) - 100;
+        attacked = prt;
+    }
+
+    // debug
+    //std::cout << "gain[0]: " << gain[0] << "\n";
+
+    while (true) {
+        int lvaIndex = leastValuableAttacker(board, occ, target, stm);
+
+        if (lvaIndex >= 64) {
+            // debug
+            //std::cout << "no attackers\n";
+
+            break;
+        }
+
+        depth++;
+
+        PieceType pt = board.at(Square(lvaIndex)).type();
+
+        if (pt == PieceType::PAWN) {
+            if (stm == Color::WHITE) {
+                if (lvaIndex >= 48) {
+                    gain[depth] = pieceValue(attacked) + (900 - 100) - gain[depth - 1];
+                    attacked = PieceType::QUEEN;
+
+                    occ.clear(lvaIndex);
+                    stm = ~stm;
+
+                    continue;
+                }
+            } else {
+                if (lvaIndex <= 15) {
+                    gain[depth] = pieceValue(attacked) + (900 - 100) - gain[depth - 1];
+                    attacked = PieceType::QUEEN;
+
+                    occ.clear(lvaIndex);
+                    stm = ~stm;
+
+                    continue;
+                }
+            }
+        }
+
+        
+
+        gain[depth] = pieceValue(attacked) - gain[depth - 1];
+
+        attacked = pt;
+
+        // debug
+        //std::cout << "lvaIndex: " << lvaIndex << " / as square: " << Square(lvaIndex) << " / gain[" << depth << "]: " << gain[depth] << "\n";
+
+        occ.clear(lvaIndex);
+        stm = ~stm;
+    }
+
+    for (int d = depth; d >= 1; d--) {
+        //std::cout << "original gain[" << d - 1 << "]: " << gain[d - 1];
+
+        gain[d - 1] = std::min(gain[d - 1], -gain[d]);
+
+        //std::cout << " / new: " << gain[d - 1] << "\n"; 
+    }
+
+    //std::cout << "final result: " << gain[0] << "\n";
+
+    return gain[0];
 }
 
 
-void scoreMoves(Board& board, const Move& hint, Movelist& moves, int ply) {
+void scoreMoves(const Board& board, const Move& hint, Movelist& moves, int ply) {
     std::uint64_t ttKey = board.hash();
     int ttIndex = ttKey & (1048576 - 1);
 
