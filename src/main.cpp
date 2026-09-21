@@ -6,6 +6,8 @@ int main(int argc, char** argv) {
     clearKillers();
     clearHistory();
 
+    initLmrTable();
+
     Board board(startpos);
     board.set960(false);
     frc = false;

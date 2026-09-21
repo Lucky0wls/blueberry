@@ -32,4 +32,6 @@ void clearTT();
 void clearKillers();
 void clearHistory();
 
+void initLmrTable();
+
 int negamax(Board& board, int depth, int alpha, int beta, int ply, searchInfo& info, const Move& hint, bool allowNullMove);
