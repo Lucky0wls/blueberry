@@ -243,10 +243,6 @@ int leastValuableAttacker(const Board& board, Bitboard occ, Square target, Color
 }
 
 int staticExchangeEvaluation(const Board& board, const Move& move) {
-    if (!board.isCapture(move)) {
-        return 0;
-    }
-
     if (move.typeOf() == Move::ENPASSANT) {
         return 0;
     }
@@ -598,6 +594,18 @@ int negamax(Board& board, int depth, int alpha, int beta, int ply, searchInfo& i
 
         if (!pvNode && depth <= 3 && searchedMoves >= 14 && extension == 0 && !capture && move.typeOf() != Move::PROMOTION && board.givesCheck(move) == CheckType::NO_CHECK) {
             continue;
+        }
+
+        if (extension == 0 && depth <= 5 && std::abs(alpha) < 90000) {
+            if (!capture) {
+                if (staticExchangeEvaluation(board, move) <= -60 * depth) {
+                    continue;
+                }
+            } else {
+                if (staticExchangeEvaluation(board, move) <= -100 * depth) {
+                    continue;
+                }
+            }
         }
 
         int from = move.from().index();
