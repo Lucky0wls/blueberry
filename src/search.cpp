@@ -322,6 +322,125 @@ int staticExchangeEvaluation(const Board& board, const Move& move) {
     return gain[0];
 }
 
+bool seeGe(const Board& board, const Move& move, int threshold) {
+    if (move.typeOf() == Move::ENPASSANT) {
+        return true;
+    }
+
+    bool earlyPruning = true;
+
+    Bitboard occ = board.occ();
+
+    Color us = board.sideToMove();
+    Color stm = us;
+
+    int value = 0;
+
+    Square target = move.to();
+
+    PieceType attacked = PieceType::NONE;
+
+    Rank theirPromotionRank = us == Color::WHITE ? Rank::RANK_1 : Rank::RANK_8;
+
+    occ.clear(move.from().index());
+    stm = ~stm;
+
+    attacked = board.at(move.from()).type();
+
+    value = pieceValue(board.at(move.to()).type());
+
+    if (move.typeOf() == Move::PROMOTION) {
+        PieceType prt = move.promotionType();
+        value += pieceValue(prt) - 100;
+        attacked = prt;
+    }
+
+    value -= threshold;
+
+    if (value < 0) {
+        return false;
+    }
+
+    while (true) {
+        int lvaIndex = leastValuableAttacker(board, occ, target, stm);
+
+        if (lvaIndex >= 64) {
+            break;
+        }
+
+        PieceType pt = board.at(Square(lvaIndex)).type();
+
+        if (pt == PieceType::PAWN) {
+            if (stm == Color::WHITE) {
+                if (lvaIndex >= 48) {
+                    value = pieceValue(attacked) + (900 - 100) - value - 1;
+
+                    if (value < 0) {
+                        if (stm == us) {
+                            return false;
+                        } else {
+                            return true;
+                        }
+                    }
+                
+                    attacked = PieceType::QUEEN;
+
+                    occ.clear(lvaIndex);
+                    stm = ~stm;
+
+                    earlyPruning = false;
+
+                    continue;
+                }
+            } else {
+                if (lvaIndex <= 15) {
+                    value = pieceValue(attacked) + (900 - 100) - value - 1;
+
+                    if (value < 0) {
+                        if (stm == us) {
+                            return false;
+                        } else {
+                            return true;
+                        }
+                    }
+
+                    attacked = PieceType::QUEEN;
+
+                    occ.clear(lvaIndex);
+                    stm = ~stm;
+
+                    earlyPruning = false;
+
+                    continue;
+                }
+            }
+        }
+
+        if (earlyPruning && pieceValue(attacked) - value <= 0) {
+            earlyPruning = false;
+            return true;
+        }
+
+        earlyPruning = false;
+
+        value = pieceValue(attacked) - value - 1;
+
+        if (value < 0) {
+            if (stm == us) {
+                return false;
+            } else {
+                return true;
+            }
+        }
+
+        attacked = pt;
+
+        occ.clear(lvaIndex);
+        stm = ~stm;
+    }
+
+    return us != stm;
+}
 
 void scoreMoves(const Board& board, const Move& hint, Movelist& moves, int ply) {
     std::uint64_t ttKey = board.hash();
@@ -597,14 +716,16 @@ int negamax(Board& board, int depth, int alpha, int beta, int ply, searchInfo& i
         }
 
         if (extension == 0 && depth <= 5 && std::abs(alpha) < 90000) {
+            int threshold = 0;
+            
             if (!capture) {
-                if (staticExchangeEvaluation(board, move) <= -60 * depth) {
-                    continue;
-                }
+                threshold = -60 * depth;
             } else {
-                if (staticExchangeEvaluation(board, move) <= -100 * depth) {
-                    continue;
-                }
+                threshold = -100 * depth;
+            }
+
+            if (!seeGe(board, move, threshold + 1)) {
+                continue;
             }
         }
 
