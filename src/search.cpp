@@ -340,8 +340,6 @@ bool seeGe(const Board& board, const Move& move, int threshold) {
 
     PieceType attacked = PieceType::NONE;
 
-    Rank theirPromotionRank = us == Color::WHITE ? Rank::RANK_1 : Rank::RANK_8;
-
     occ.clear(move.from().index());
     stm = ~stm;
 
