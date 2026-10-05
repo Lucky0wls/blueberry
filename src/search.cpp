@@ -1,8 +1,8 @@
 #include "search.hpp"
 #include "evaluate.hpp"
 
-int inf = 1'000'000'000;
-int mateScore = 100'000;
+constexpr int inf = 1'000'000'000;
+constexpr int mateScore = 100'000;
 
 std::array<TTEntry, 1048576> tt{};
 
@@ -127,7 +127,7 @@ int mvvLva(const Board& board, const Move& move) {
     int victimValue = move.typeOf() == Move::ENPASSANT ? 100 : pieceValue(victim.type());
     int attackerValue = pieceValue(attacker.type());
 
-    return 900'000 + victimValue * 10 - attackerValue;
+    return victimValue * 10 - attackerValue;
 }
 
 Bitboard attackersTo(const Board& board, Bitboard occ, Square target, Color stm) {
@@ -242,87 +242,7 @@ int leastValuableAttacker(const Board& board, Bitboard occ, Square target, Color
     return 64; 
 }
 
-int staticExchangeEvaluation(const Board& board, const Move& move) {
-    if (move.typeOf() == Move::ENPASSANT) {
-        return 0;
-    }
-
-    Bitboard occ = board.occ();
-    Color stm = board.sideToMove();
-
-    std::array<int, 256> gain{};
-
-    int depth = 0;
-
-    Square target = move.to();
-
-    PieceType attacked = PieceType::NONE;
-
-    occ.clear(move.from().index());
-    stm = ~stm;
-
-    
-    attacked = board.at(move.from()).type();
-
-    gain[0] = pieceValue(board.at(move.to()).type());
-
-    if (move.typeOf() == Move::PROMOTION) {
-        PieceType prt = move.promotionType();
-        gain[0] += pieceValue(prt) - 100;
-        attacked = prt;
-    }
-
-    while (true) {
-        int lvaIndex = leastValuableAttacker(board, occ, target, stm);
-
-        if (lvaIndex >= 64) {
-            break;
-        }
-
-        depth++;
-
-        PieceType pt = board.at(Square(lvaIndex)).type();
-
-        if (pt == PieceType::PAWN) {
-            if (stm == Color::WHITE) {
-                if (lvaIndex >= 48) {
-                    gain[depth] = pieceValue(attacked) + (900 - 100) - gain[depth - 1];
-                    attacked = PieceType::QUEEN;
-
-                    occ.clear(lvaIndex);
-                    stm = ~stm;
-
-                    continue;
-                }
-            } else {
-                if (lvaIndex <= 15) {
-                    gain[depth] = pieceValue(attacked) + (900 - 100) - gain[depth - 1];
-                    attacked = PieceType::QUEEN;
-
-                    occ.clear(lvaIndex);
-                    stm = ~stm;
-
-                    continue;
-                }
-            }
-        }
-
-        gain[depth] = pieceValue(attacked) - gain[depth - 1];
-
-        attacked = pt;
-
-        occ.clear(lvaIndex);
-        stm = ~stm;
-    }
-
-    for (int d = depth; d >= 1; d--) {
-        gain[d - 1] = std::min(gain[d - 1], -gain[d]);
-    }
-
-    return gain[0];
-}
-
-bool seeGe(const Board& board, const Move& move, int threshold) {
+bool staticExchangeEvaluation(const Board& board, const Move& move, int threshold) {
     if (move.typeOf() == Move::ENPASSANT) {
         return true;
     }
@@ -452,11 +372,10 @@ void scoreMoves(const Board& board, const Move& hint, Movelist& moves, int ply) 
         } else if (move == hint && hint != Move::NO_MOVE) {
             score = 1'000'000;
         } else if (board.isCapture(move)) {
-            int see = staticExchangeEvaluation(board, move);
-            if (see >= 0) {
-                score = 900'000 + see;
+            if (staticExchangeEvaluation(board, move, 0)) {
+                score = 900'000 + mvvLva(board, move);
             } else {
-                score = 875'000 + see;
+                score = 875'000 + mvvLva(board, move);
             }
         } else if (move == killer1[ply]) {
             score = 890'000;
@@ -722,7 +641,7 @@ int negamax(Board& board, int depth, int alpha, int beta, int ply, searchInfo& i
                 threshold = -100 * depth;
             }
 
-            if (!seeGe(board, move, threshold + 1)) {
+            if (!staticExchangeEvaluation(board, move, threshold + 1)) {
                 continue;
             }
         }
