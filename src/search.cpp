@@ -606,6 +606,8 @@ int negamax(Board& board, int depth, int alpha, int beta, int ply, searchInfo& i
 
     scoreMoves(board, hint, moves, ply);
 
+    Movelist triedMoves;
+
     for (int i = 0; i < moves.size(); i++) {
         if (info.stop) {
             return 0;
@@ -679,6 +681,7 @@ int negamax(Board& board, int depth, int alpha, int beta, int ply, searchInfo& i
 
         if (!capture) {
             butterfly[from][to] = std::min(butterfly[from][to] + 1, 250'000);
+            triedMoves.add(move);
         }
 
         if (score > bestScore) {
@@ -705,6 +708,17 @@ int negamax(Board& board, int depth, int alpha, int beta, int ply, searchInfo& i
                 }
 
                 history[from][to] = std::min(history[from][to] + depth * depth, 250'000);
+
+                for (const Move& m : triedMoves) {
+                    if (m == move) continue;
+
+                    int f = m.from().index();
+                    int t = m.to().index();
+
+                    history[f][t] = std::max(history[f][t] - depth * depth, -250'000);
+                }
+
+                triedMoves.clear();
             }
 
             storeTT(move, ttKey, depth, bestScore, ttBeta, ply);
