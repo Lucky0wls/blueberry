@@ -678,8 +678,7 @@ int negamax(Board& board, int depth, int alpha, int beta, int ply, searchInfo& i
         searchedMoves++;
 
         if (!capture) {
-            butterfly[from][to] += 1;
-            butterfly[from][to] = std::min(butterfly[from][to], 250'000);
+            butterfly[from][to] = std::min(butterfly[from][to] + 1, 250'000);
         }
 
         if (score > bestScore) {
@@ -705,8 +704,7 @@ int negamax(Board& board, int depth, int alpha, int beta, int ply, searchInfo& i
                     killer1[ply] = move;
                 }
 
-                history[from][to] += depth * depth;
-                history[from][to] = std::min(history[from][to], 250'000);
+                history[from][to] = std::min(history[from][to] + depth * depth, 250'000);
             }
 
             storeTT(move, ttKey, depth, bestScore, ttBeta, ply);
