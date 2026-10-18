@@ -511,6 +511,8 @@ int negamax(Board& board, int depth, int alpha, int beta, int ply, searchInfo& i
     std::uint64_t ttKey = board.hash();
     int ttIndex = ttKey & (1048576 - 1);
 
+    Move ttMove = Move::NO_MOVE;
+
     int searchedMoves = 0;
 
     int eval = 0;
@@ -557,6 +559,8 @@ int negamax(Board& board, int depth, int alpha, int beta, int ply, searchInfo& i
             pvLength[ply] = ply + 1;
 
             return ttScore;
+        } else if (tt[ttIndex].bestMove != Move::NO_MOVE) {
+            ttMove = tt[ttIndex].bestMove;
         }
     }
 
@@ -569,6 +573,10 @@ int negamax(Board& board, int depth, int alpha, int beta, int ply, searchInfo& i
     }
 
     int extension = board.inCheck() ? 1 : 0;
+
+    if (ttMove == Move::NO_MOVE && extension == 0 && depth >= 5) {
+        depth--;
+    }
 
     bool canNullMove = ply > 0 && extension == 0 && depth >= 4 && std::abs(beta) < 90000 && board.hasNonPawnMaterial(board.sideToMove()) && allowNullMove;
 
