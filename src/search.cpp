@@ -574,7 +574,7 @@ int negamax(Board& board, int depth, int alpha, int beta, int ply, searchInfo& i
 
     int extension = board.inCheck() ? 1 : 0;
 
-    if (ttMove == Move::NO_MOVE && extension == 0 && depth >= 5) {
+    if (ttMove == Move::NO_MOVE && extension == 0 && depth >= 4) {
         depth--;
     }
 
