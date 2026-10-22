@@ -15,6 +15,8 @@ std::array<std::array<int, 64>, 64> butterfly{};
 std::array<std::array<Move, 256>, 256> pvTable{};
 std::array<int, 256> pvLength{};
 
+std::array<int, 256> staticEval{};
+
 void clearTT() {
     for (int i = 0; i < 1048576; i++) {
         tt[i].key = 0;
@@ -515,8 +517,13 @@ int negamax(Board& board, int depth, int alpha, int beta, int ply, searchInfo& i
 
     int searchedMoves = 0;
 
-    int eval = 0;
-    int evaluated = false;
+    staticEval[ply] = evaluate(board);
+
+    bool improving = false;
+
+    if (ply >= 2) {
+        improving = staticEval[ply] > staticEval[ply - 2];
+    }
 
     if ((info.nodes & 2047) == 0 && timeUp(info)) {
         info.stop = true;
@@ -595,13 +602,8 @@ int negamax(Board& board, int depth, int alpha, int beta, int ply, searchInfo& i
     bool pvNode = beta - alpha > 1;
 
     if (!pvNode && extension == 0 && depth <= 4 && std::abs(beta) < 90000) {
-        if (!evaluated) {
-            eval = evaluate(board);
-            evaluated = true;
-        }
-
-        if (eval - (depth * 100) >= beta) {
-            return eval;
+        if (staticEval[ply] - (depth * (improving ? 60 : 100)) >= beta) {
+            return staticEval[ply];
         }
     }
 
@@ -628,12 +630,7 @@ int negamax(Board& board, int depth, int alpha, int beta, int ply, searchInfo& i
         bool capture = board.isCapture(move);
 
         if (depth <= 3 && std::abs(alpha) < 90000 && searchedMoves > 0 && !pvNode && extension == 0 && !capture && move.typeOf() != Move::PROMOTION && board.givesCheck(move) == CheckType::NO_CHECK) {
-            if (!evaluated) {
-                eval = evaluate(board);
-                evaluated = true;
-            }
-
-            if (eval + (depth * 100) <= alpha) {
+            if (staticEval[ply] + (depth * 100) <= alpha) {
                 continue;
             }
         }
