@@ -517,13 +517,7 @@ int negamax(Board& board, int depth, int alpha, int beta, int ply, searchInfo& i
 
     int searchedMoves = 0;
 
-    staticEval[ply] = evaluate(board);
-
     bool improving = false;
-
-    if (ply >= 2) {
-        improving = staticEval[ply] > staticEval[ply - 2];
-    }
 
     if ((info.nodes & 2047) == 0 && timeUp(info)) {
         info.stop = true;
@@ -583,6 +577,12 @@ int negamax(Board& board, int depth, int alpha, int beta, int ply, searchInfo& i
 
     if (ttMove == Move::NO_MOVE && extension == 0 && depth >= 5) {
         depth--;
+    }
+
+    staticEval[ply] = evaluate(board);
+
+    if (ply >= 2) {
+        improving = staticEval[ply] > staticEval[ply - 2];
     }
 
     bool canNullMove = ply > 0 && extension == 0 && depth >= 4 && std::abs(beta) < 90000 && board.hasNonPawnMaterial(board.sideToMove()) && allowNullMove;
